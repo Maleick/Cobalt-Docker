@@ -36,11 +36,28 @@ Before you begin, ensure you have the following installed:
     ./cobalt-docker.sh
     ```
 
+
     The first time you run the script, it will prompt you for your Cobalt Strike license key and a password for the team server. These credentials will be saved in a `.env` file in the project directory.
+
+    **Important:** The `.env` file is excluded from version control by the `.gitignore` file, so your credentials will not be uploaded to GitHub or shared with others. If you add other sensitive files, make sure to update `.gitignore` accordingly.
 
     For subsequent runs, the script will automatically load the credentials from the `.env` file, so you won't be prompted again.
 
+
 The script will then build the Docker image (if not already built or if changes are detected) and start the Cobalt Strike team server in a container. The server will be accessible on your host machine at the IP address displayed in the script's output.
+
+## Credits & Kudos
+
+- **Cobalt Strike**: This project is based on the Cobalt Strike software by Strategic Cyber LLC. You must have a valid license to use Cobalt Strike.
+- **Docker**: Thanks to the Docker community for providing the tools and documentation that make containerization easy.
+- **Inspiration**: This project was heavily inspired by the following repositories and resources:
+  - [White Knight Labs docker-cobaltstrike](https://github.com/WKL-Sec/docker-cobaltstrike) (which itself is based on [warhorse/docker-cobaltstrike](https://github.com/warhorse/docker-cobaltstrike))
+  - [ZSECURE/zDocker-cobaltstrike](https://github.com/ZSECURE/zDocker-cobaltstrike/tree/main)
+  - Blog post by Ezra Buckingham
+
+Special thanks to these authors and the broader community for sharing their work and knowledge.
+
+If you found this project helpful, consider giving it a star on GitHub or sharing feedback!
 
 ## Disclaimer
 
