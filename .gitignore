@@ -7,3 +7,4 @@ Thumbs.db
 *.log
 # Other sensitive files
 secrets.*
+.env
