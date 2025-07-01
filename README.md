@@ -20,8 +20,8 @@ Before you begin, ensure you have the following installed:
 1.  **Clone the repository:**
 
     ```bash
-    git clone <repository-url>
-    cd <repository-name>
+    git clone https://github.com/Maleick/Cobalt-Docker.git
+    cd Cobalt-Docker
     ```
 
 2.  **Make the script executable:**
