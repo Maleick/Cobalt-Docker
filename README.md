@@ -48,7 +48,7 @@ The script will then build the Docker image (if not already built or if changes 
 
 ## Credits & Kudos
 
-- **Cobalt Strike**: This project is based on the Cobalt Strike software by Strategic Cyber LLC. You must have a valid license to use Cobalt Strike.
+- **Cobalt Strike**: This project is based on the Cobalt Strike software by Fortra. You must have a valid license to use Cobalt Strike.
 - **Docker**: Thanks to the Docker community for providing the tools and documentation that make containerization easy.
 - **Inspiration**: This project was heavily inspired by the following repositories and resources:
   - [White Knight Labs docker-cobaltstrike](https://github.com/WKL-Sec/docker-cobaltstrike) (which itself is based on [warhorse/docker-cobaltstrike](https://github.com/warhorse/docker-cobaltstrike))
