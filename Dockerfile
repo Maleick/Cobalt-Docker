@@ -12,7 +12,7 @@ RUN apt-get update && apt-get -y dist-upgrade && \
     gnupg \
     ca-certificates \
     expect \
-    openjdk-11-jdk \
+    openjdk-17-jdk \
     curl \
     iproute2 && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
@@ -33,6 +33,10 @@ RUN echo "COBALTSTRIKE_LICENSE: ${COBALTSTRIKE_LICENSE}" && \
     cd /opt/cobaltstrike && \
     echo "${COBALTSTRIKE_LICENSE}" | ./update && \
     mkdir /opt/cobaltstrike/mount
+
+# Copy any local malleable profiles into the image so they can be used
+# even when a host bind mount is not available.
+COPY malleable.profile* /opt/cobaltstrike/mount/
 
 # Expose all necessary ports for Cobalt Strike Team Server and C2 communications
 # Remember that for external access on common ports like 80/443, you'll typically use
