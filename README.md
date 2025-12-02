@@ -1,6 +1,6 @@
 # Cobalt Strike Docker
 
-This project provides a simple way to build and run a Cobalt Strike team server in a Docker container. It includes a Dockerfile for building the image, a shell script for automation, and a sample Malleable C2 profile.
+This project provides a simple way to build and run a Cobalt Strike team server in a Docker container. It includes a Dockerfile for building the image, a shell script for automation, and sample Malleable C2 profiles. The configuration and example profiles have been updated and tested with **Cobalt Strike 4.12**.
 
 ## Prerequisites
 
@@ -11,9 +11,10 @@ Before you begin, ensure you have the following installed:
 
 ## Files
 
-- **`Dockerfile`**: Defines the Docker image for the Cobalt Strike team server. It installs the necessary dependencies, downloads and installs Cobalt Strike, and sets up the container environment.
+- **`Dockerfile`**: Defines the Docker image for the Cobalt Strike team server. It installs the necessary dependencies, downloads and installs Cobalt Strike (tested with 4.12), and sets up the container environment.
 - **`cobalt-docker.sh`**: A shell script that automates the process of building the Docker image and running the container. It prompts for your Cobalt Strike license key and a password for the team server.
-- **`malleable.profile`**: A sample Malleable C2 profile to customize the appearance of your Cobalt Strike traffic.
+- **`malleable.profile`**: A default Malleable C2 profile to customize the appearance of your Cobalt Strike traffic.
+- **`malleable.profile.4.12-drip` / `malleable.profile.4.12-drip-vaex`**: Additional example Malleable C2 profiles tailored and validated for Cobalt Strike 4.12.
 
 ## Setup and Usage
 
@@ -45,6 +46,15 @@ Before you begin, ensure you have the following installed:
 
 
 The script will then build the Docker image (if not already built or if changes are detected) and start the Cobalt Strike team server in a container. The server will be accessible on your host machine at the IP address displayed in the script's output.
+
+## Cobalt Strike 4.12 notes
+
+- This repository (Dockerfile, automation script, and example profiles) has been validated against Cobalt Strike 4.12.
+- The helper profiles `malleable.profile.4.12-drip` and `malleable.profile.4.12-drip-vaex` were linted with `c2lint` and are intended as 4.12-friendly starting points.
+- If you use a different Cobalt Strike version, you should:
+  - Re-run `./cobalt-docker.sh lint <your_profile>` to validate any custom profiles with `c2lint` inside the container.
+  - Review Fortra’s release notes for any profile syntax or behavioral changes between versions.
+- Java is provided in the image; you normally do not need a host-side Java install to run the team server inside Docker.
 
 ## Credits & Kudos
 
