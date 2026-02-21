@@ -26,10 +26,9 @@ MOUNT_SOURCE="${MOUNT_SOURCE:-${COBALT_DOCKER_MOUNT_SOURCE:-$SCRIPT_DIR}}"
 
 # --- Argument Parsing ---
 # Usage patterns:
-#   ./cobalt-docker.sh                      # build + run with default malleable.profile
+#   ./cobalt-docker.sh                      # build + run (no profile)
 #   ./cobalt-docker.sh custom.profile       # build + run with custom profile
-#   ./cobalt-docker.sh --lint               # build + lint default profile (no run)
-#   ./cobalt-docker.sh lint [profile]       # build + lint only
+#   ./cobalt-docker.sh lint custom.profile  # build + lint only
 #   ./cobalt-docker.sh custom.profile --lint# build + lint + run
 
 PROFILE_NAME=""
