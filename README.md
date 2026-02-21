@@ -1,74 +1,226 @@
 # Cobalt Strike Docker
 
-This project provides a simple way to build and run a Cobalt Strike team server in a Docker container. It includes a Dockerfile for building the image, a shell script for automation, and sample Malleable C2 profiles. The configuration and example profiles have been updated and tested with **Cobalt Strike 4.12**.
+This project builds and runs a Cobalt Strike team server in Docker. It supports Cobalt Strike **4.12** and now starts the REST API (`csrestapi`) automatically alongside teamserver.
 
 ## Prerequisites
-
-Before you begin, ensure you have the following installed:
 
 - [Docker](https://www.docker.com/get-started)
 - A valid Cobalt Strike license key
 
+## Required Preflight: Populate `.env` First
+
+`cobalt-docker.sh` now requires a populated `.env` file before it will run.  
+If `.env` is missing, or if required keys are empty, the script exits immediately and does not deploy.
+
+### Required keys
+
+- `COBALTSTRIKE_LICENSE`
+- `TEAMSERVER_PASSWORD`
+
+### Optional keys
+
+- `REST_API_USER` (default: `csrestapi`)
+- `REST_API_PUBLISH_PORT` (default: `50443`)
+- `SERVICE_BIND_HOST` (default: `0.0.0.0`)
+- `SERVICE_PORT` (default: `50443`)
+- `UPSTREAM_HOST` (default: `127.0.0.1`)
+- `UPSTREAM_PORT` (default: `50050`)
+- `HEALTHCHECK_URL` (default: `https://127.0.0.1:${SERVICE_PORT}/health`)
+- `HEALTHCHECK_INSECURE` (default: `true`)
+
+### Runtime override environment variables (shell)
+
+These are shell environment variables passed when invoking `cobalt-docker.sh` (not values stored in `.env`):
+
+- `DOCKER_PLATFORM` (default: `linux/amd64`)
+- `MOUNT_SOURCE` (generic bind-mount override; defaults to the repo directory)
+- `COBALT_DOCKER_MOUNT_SOURCE` (legacy alias for `MOUNT_SOURCE`)
+
+### Setup
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set real values for at least:
+
+```dotenv
+COBALTSTRIKE_LICENSE="your-license-key"
+TEAMSERVER_PASSWORD="your-teamserver-password"
+```
+
 ## Files
 
-- **`Dockerfile`**: Defines the Docker image for the Cobalt Strike team server. It installs the necessary dependencies, downloads and installs Cobalt Strike (tested with 4.12), and sets up the container environment.
-- **`cobalt-docker.sh`**: A shell script that automates the process of building the Docker image and running the container. It prompts for your Cobalt Strike license key and a password for the team server.
-- **`malleable.profile`**: A default Malleable C2 profile to customize the appearance of your Cobalt Strike traffic.
-- **`malleable.profile.4.12-drip` / `malleable.profile.4.12-drip-vaex`**: Additional example Malleable C2 profiles tailored and validated for Cobalt Strike 4.12.
+- `Dockerfile`: Builds the Cobalt Strike image and uses a custom entrypoint that starts both teamserver and REST API.
+- `docker-entrypoint.sh`: Starts `teamserver --experimental-db`, waits for readiness, then starts `csrestapi`.
+- `cobalt-docker.sh`: Validates `.env`, builds the image, optional profile linting, and runs the container.
+- `.env.example`: Template for required and optional runtime configuration.
+- `.gitignore`: Keeps secrets out of git (including `.env`) while allowing `.env.example`.
+- `tests/smoke_tls_handshake.sh`: Detached end-to-end smoke check for startup health, TLS negotiation, and process stability classification.
+- `tests/assert_startup_stability.sh`: Log assertion helper to classify handshake warnings vs fatal startup failures.
+- `malleable.profile`: Default Malleable C2 profile.
+- `malleable.profile.4.12-drip` / `malleable.profile.4.12-drip-vaex`: Additional example profiles for 4.12.
 
-## Setup and Usage
+## Usage
 
-1.  **Clone the repository:**
+1. Clone and enter the repository:
 
-    ```bash
-    git clone https://github.com/Maleick/Cobalt-Docker.git
-    cd Cobalt-Docker
-    ```
+```bash
+git clone https://github.com/Maleick/Cobalt-Docker.git
+cd Cobalt-Docker
+```
 
-2.  **Make the script executable:**
+2. Populate `.env` as shown above.
+3. Make the script executable:
 
-    ```bash
-    chmod +x cobalt-docker.sh
-    ```
+```bash
+chmod +x cobalt-docker.sh
+```
 
-3.  **Run the script:**
+4. Run:
 
-    ```bash
-    ./cobalt-docker.sh
-    ```
+```bash
+./cobalt-docker.sh
+```
 
+### Custom profile
 
-    The first time you run the script, it will prompt you for your Cobalt Strike license key and a password for the team server. These credentials will be saved in a `.env` file in the project directory.
+```bash
+./cobalt-docker.sh custom.profile
+```
 
-    **Important:** The `.env` file is excluded from version control by the `.gitignore` file, so your credentials will not be uploaded to GitHub or shared with others. If you add other sensitive files, make sure to update `.gitignore` accordingly.
+### Profile linting (`c2lint`)
 
-    For subsequent runs, the script will automatically load the credentials from the `.env` file, so you won't be prompted again.
+```bash
+# Lint default profile only
+./cobalt-docker.sh lint
 
+# Lint a specific profile only
+./cobalt-docker.sh lint malleable.profile.4.12-drip
 
-The script will then build the Docker image (if not already built or if changes are detected) and start the Cobalt Strike team server in a container. The server will be accessible on your host machine at the IP address displayed in the script's output.
+# Lint and then run
+./cobalt-docker.sh malleable.profile.4.12-drip --lint
+```
 
-## Cobalt Strike 4.12 notes
+## Runtime Behavior
 
-- This repository (Dockerfile, automation script, and example profiles) has been validated against Cobalt Strike 4.12.
-- The helper profiles `malleable.profile.4.12-drip` and `malleable.profile.4.12-drip-vaex` were linted with `c2lint` and are intended as 4.12-friendly starting points.
-- If you use a different Cobalt Strike version, you should:
-  - Re-run `./cobalt-docker.sh lint <your_profile>` to validate any custom profiles with `c2lint` inside the container.
-  - Review Fortra’s release notes for any profile syntax or behavioral changes between versions.
-- Java is provided in the image; you normally do not need a host-side Java install to run the team server inside Docker.
+On startup, the container entrypoint:
+
+1. Starts `teamserver` with `--experimental-db`.
+2. Waits for teamserver TLS readiness using `openssl s_client` (default upstream: `127.0.0.1:50050`).
+3. Starts `csrestapi` using:
+   - `--user $REST_API_USER`
+   - `--pass $TEAMSERVER_PASSWORD`
+   - `--host $UPSTREAM_HOST --port $UPSTREAM_PORT`
+   - Spring bind env: `SERVER_ADDRESS=$SERVICE_BIND_HOST`, `SERVER_PORT=$SERVICE_PORT`
+4. Waits for HTTPS readiness at `HEALTHCHECK_URL` (using `curl`, with `-k` when `HEALTHCHECK_INSECURE=true`), treating HTTP `2xx-4xx` as reachable.
+
+If either process exits unexpectedly, the container exits.
+
+## Network and Port Mapping
+
+Host mappings configured by `cobalt-docker.sh`:
+
+- `50050/tcp` (teamserver)
+- `80/tcp`, `443/tcp` (HTTP/HTTPS listener ports)
+- `53/udp` (DNS listener use cases)
+- `127.0.0.1:${REST_API_PUBLISH_PORT}:${SERVICE_PORT}` (REST API, localhost-only by default)
+
+By default, the REST API is reachable from the host at:
+
+`https://127.0.0.1:50443`
+
+## Docker Desktop Shared Paths and `/opt` Mount Failures
+
+If you run Docker Desktop on macOS and see:
+
+`invalid mount config for type "bind": bind source path does not exist`
+
+the Docker daemon cannot see the host path even though your shell can. This commonly happens for paths outside Docker-shared roots (for example, `/opt/...`).
+
+`cobalt-docker.sh` now probes mountability automatically:
+
+- If mount probe succeeds: bind mount is used (`USE_BIND_MOUNT=true` behavior).
+- If mount probe fails: script falls back to in-image profiles (`USE_BIND_MOUNT=false` behavior) and continues.
+
+Fallback limitation:
+
+- In fallback mode, only profiles baked into the image are available.
+- Custom host profiles require a daemon-visible shared `MOUNT_SOURCE`.
+
+Examples:
+
+```bash
+# Force a Docker-shared path for custom profiles
+MOUNT_SOURCE=/Users/<user>/Cobalt-Docker ./cobalt-docker.sh
+
+# Override platform at build/run time
+DOCKER_PLATFORM=linux/amd64 ./cobalt-docker.sh
+```
+
+## TLS Handshake Warning Interpretation
+
+`javax.net.ssl.SSLHandshakeException: Remote host terminated the handshake` can be startup noise (for example, a probe disconnecting early) or a real failure.  
+Treat it as non-fatal only when all three checks pass:
+
+1. HTTPS health endpoint succeeds.
+2. TLS negotiation succeeds with `openssl`.
+3. Process stays up after startup markers are logged.
+
+### Generic diagnostics checklist
+
+```bash
+# 1) Inspect startup sequence
+docker logs cobaltstrike_server
+
+# 2) TLS-aware HTTP readiness check (self-signed certs)
+curl -ksS -o /dev/null -w '%{http_code}\n' https://127.0.0.1:50443/health
+
+# 3) Verify TLS negotiation directly
+openssl s_client -connect 127.0.0.1:50443 -servername localhost -brief </dev/null
+
+# 4) Confirm listener
+lsof -iTCP:50443 -sTCP:LISTEN
+
+# 5) Confirm env/port wiring
+docker inspect cobaltstrike_server
+```
+
+### Automated verification scripts
+
+```bash
+# End-to-end detached smoke test
+./tests/smoke_tls_handshake.sh
+
+# Optional standalone startup-log assertion
+./tests/assert_startup_stability.sh cobaltstrike_server
+```
+
+## Failure Conditions
+
+`cobalt-docker.sh` exits before build/run when:
+
+- `.env` does not exist
+- `COBALTSTRIKE_LICENSE` is missing/empty
+- `TEAMSERVER_PASSWORD` is missing/empty
+- `REST_API_PUBLISH_PORT` is invalid (not an integer from 1 to 65535)
+
+## Notes for Cobalt Strike 4.12
+
+- This repository has been validated with Cobalt Strike 4.12.
+- The helper profiles `malleable.profile.4.12-drip` and `malleable.profile.4.12-drip-vaex` were linted with `c2lint`.
+- If using a different Cobalt Strike version, re-lint your profiles and review Fortra release notes for behavior changes.
 
 ## Credits & Kudos
 
-- **Cobalt Strike**: This project is based on the Cobalt Strike software by Fortra. You must have a valid license to use Cobalt Strike.
-- **Docker**: Thanks to the Docker community for providing the tools and documentation that make containerization easy.
-- **Inspiration**: This project was heavily inspired by the following repositories and resources:
-  - [White Knight Labs docker-cobaltstrike](https://github.com/WKL-Sec/docker-cobaltstrike) (which itself is based on [warhorse/docker-cobaltstrike](https://github.com/warhorse/docker-cobaltstrike))
+- **Cobalt Strike**: This project is based on Cobalt Strike by Fortra. A valid license is required.
+- **Docker**: Thanks to the Docker community for container tooling and docs.
+- **Inspiration**:
+  - [White Knight Labs docker-cobaltstrike](https://github.com/WKL-Sec/docker-cobaltstrike)
+  - [warhorse/docker-cobaltstrike](https://github.com/warhorse/docker-cobaltstrike)
   - [ZSECURE/zDocker-cobaltstrike](https://github.com/ZSECURE/zDocker-cobaltstrike/tree/main)
   - Blog post by Ezra Buckingham
 
-Special thanks to these authors and the broader community for sharing their work and knowledge.
-
-If you found this project helpful, consider giving it a star on GitHub or sharing feedback!
-
 ## Disclaimer
 
-This project is intended for authorized and ethical use only. Cobalt Strike is a powerful tool that can be used for malicious purposes. By using this project, you agree to use it in a responsible and legal manner. The author is not responsible for any misuse of this project.
+This project is for authorized and ethical use only. The author is not responsible for misuse.

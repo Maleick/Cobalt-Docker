@@ -8,3 +8,4 @@ Thumbs.db
 # Other sensitive files
 secrets.*
 .env
+!.env.example
