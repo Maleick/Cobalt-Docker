@@ -8,8 +8,7 @@ This repository builds and runs a Cobalt Strike 4.12 Docker deployment with:
 
 - strict `.env` preflight validation,
 - automatic teamserver + REST API startup,
-- Docker Desktop mount probe + fallback behavior,
-- TLS-aware startup/readiness verification scripts.
+- Docker Desktop mount probe + fallback behavior.
 
 ## Canonical Entry Point
 
@@ -62,12 +61,6 @@ Run shell checks after script edits:
 
 - `bash -n /opt/Cobalt-Docker/cobalt-docker.sh`
 - `bash -n /opt/Cobalt-Docker/docker-entrypoint.sh`
-- `bash -n /opt/Cobalt-Docker/tests/smoke_tls_handshake.sh`
-- `bash -n /opt/Cobalt-Docker/tests/assert_startup_stability.sh`
-
-Run detached smoke verification (avoid host port collisions by overriding ports as needed):
-
-- `HOST_TEAMSERVER_PORT=51050 HOST_REST_PORT=51443 ./tests/smoke_tls_handshake.sh`
 
 ## Documentation Rule
 

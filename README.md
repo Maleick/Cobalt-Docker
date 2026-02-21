@@ -2,8 +2,6 @@
 
 This project builds and runs a Cobalt Strike team server in Docker. It supports Cobalt Strike **4.12** and now starts the REST API (`csrestapi`) automatically alongside teamserver.
 
-For a standalone neutral example (custom app on `50051` with optional Tailscale), see `/opt/Cobalt-Docker/benign-docker-template/README.md`.
-
 ## Prerequisites
 
 - [Docker](https://www.docker.com/get-started)
@@ -64,8 +62,6 @@ TEAMSERVER_PASSWORD="your-teamserver-password"
 - `AGENTS.md`: Local repository workflow guidance for coding agents.
 - `.env.example`: Template for required and optional runtime configuration.
 - `.gitignore`: Keeps secrets out of git (including `.env`) while allowing `.env.example`.
-- `tests/smoke_tls_handshake.sh`: Detached end-to-end smoke check for startup health, TLS negotiation, and process stability classification.
-- `tests/assert_startup_stability.sh`: Log assertion helper to classify handshake warnings vs fatal startup failures.
 - `malleable.profile`: Default Malleable C2 profile.
 - `malleable.profile.4.12-drip` / `malleable.profile.4.12-drip-vaex`: Additional example profiles for 4.12.
 
@@ -167,9 +163,6 @@ curl -ksS -o /dev/null -w '%{http_code}\n' https://127.0.0.1:50443/health
 
 # TLS negotiation works
 openssl s_client -connect 127.0.0.1:50443 -servername localhost -brief </dev/null
-
-# startup classification helper
-./tests/assert_startup_stability.sh cobaltstrike_server
 ```
 
 ## Tailscale Integration
@@ -282,16 +275,6 @@ lsof -iTCP:50443 -sTCP:LISTEN
 
 # 5) Confirm env/port wiring
 docker inspect cobaltstrike_server
-```
-
-### Automated verification scripts
-
-```bash
-# End-to-end detached smoke test
-./tests/smoke_tls_handshake.sh
-
-# Optional standalone startup-log assertion
-./tests/assert_startup_stability.sh cobaltstrike_server
 ```
 
 ## Failure Conditions
