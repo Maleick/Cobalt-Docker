@@ -1,0 +1,79 @@
+# AGENTS.md
+
+This file documents how coding agents should work in this repository.
+
+## Repo Purpose
+
+This repository builds and runs a Cobalt Strike 4.12 Docker deployment with:
+
+- strict `.env` preflight validation,
+- automatic teamserver + REST API startup,
+- Docker Desktop mount probe + fallback behavior,
+- TLS-aware startup/readiness verification scripts.
+
+## Canonical Entry Point
+
+Use `./cobalt-docker.sh` as the primary workflow.
+
+Do not hand-roll ad-hoc `docker run` invocations unless debugging a specific issue.
+
+## Required Preflight Inputs
+
+`.env` must exist and include:
+
+- `COBALTSTRIKE_LICENSE`
+- `TEAMSERVER_PASSWORD`
+
+If either key is missing/empty, launcher exits by design.
+
+Template file:
+
+- `.env.example`
+
+## REST API Integration Contract
+
+The container entrypoint is `docker-entrypoint.sh` and it:
+
+1. starts `teamserver --experimental-db`,
+2. waits for teamserver TLS readiness,
+3. starts `csrestapi`,
+4. waits for HTTPS readiness before declaring startup healthy.
+
+Defaults:
+
+- `UPSTREAM_HOST=127.0.0.1`
+- `UPSTREAM_PORT=50050`
+- `SERVICE_BIND_HOST=0.0.0.0`
+- `SERVICE_PORT=50443`
+- host publish: `127.0.0.1:${REST_API_PUBLISH_PORT:-50443}:${SERVICE_PORT}`
+
+## Mount Fallback Contract
+
+Launcher probes whether host `MOUNT_SOURCE` is daemon-visible for bind mounts.
+
+- Probe success: use bind mount.
+- Probe failure: fallback mode with in-image profiles only.
+
+Fallback still expects selected profile to exist in `/opt/cobaltstrike/mount/<profile>`.
+
+## Validation Commands
+
+Run shell checks after script edits:
+
+- `bash -n /opt/Cobalt-Docker/cobalt-docker.sh`
+- `bash -n /opt/Cobalt-Docker/docker-entrypoint.sh`
+- `bash -n /opt/Cobalt-Docker/tests/smoke_tls_handshake.sh`
+- `bash -n /opt/Cobalt-Docker/tests/assert_startup_stability.sh`
+
+Run detached smoke verification (avoid host port collisions by overriding ports as needed):
+
+- `HOST_TEAMSERVER_PORT=51050 HOST_REST_PORT=51443 ./tests/smoke_tls_handshake.sh`
+
+## Documentation Rule
+
+When behavior changes, update `README.md` in the same change with:
+
+- preflight requirements,
+- auto-deploy behavior,
+- optional flags/overrides,
+- verification commands.

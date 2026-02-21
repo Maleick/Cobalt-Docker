@@ -54,6 +54,7 @@ TEAMSERVER_PASSWORD="your-teamserver-password"
 - `Dockerfile`: Builds the Cobalt Strike image and uses a custom entrypoint that starts both teamserver and REST API.
 - `docker-entrypoint.sh`: Starts `teamserver --experimental-db`, waits for readiness, then starts `csrestapi`.
 - `cobalt-docker.sh`: Validates `.env`, builds the image, optional profile linting, and runs the container.
+- `AGENTS.md`: Local repository workflow guidance for coding agents.
 - `.env.example`: Template for required and optional runtime configuration.
 - `.gitignore`: Keeps secrets out of git (including `.env`) while allowing `.env.example`.
 - `tests/smoke_tls_handshake.sh`: Detached end-to-end smoke check for startup health, TLS negotiation, and process stability classification.
@@ -100,6 +101,68 @@ chmod +x cobalt-docker.sh
 
 # Lint and then run
 ./cobalt-docker.sh malleable.profile.4.12-drip --lint
+```
+
+## REST API Integration
+
+The REST API integration is built into the default deployment path.
+
+If you run:
+
+```bash
+./cobalt-docker.sh
+```
+
+the launcher builds/runs the container and the entrypoint automatically starts both:
+
+- `teamserver --experimental-db`
+- `csrestapi`
+
+No extra startup flag is required for standard REST API deployment.
+
+### What is required
+
+- `.env` must already contain:
+  - `COBALTSTRIKE_LICENSE`
+  - `TEAMSERVER_PASSWORD`
+
+### Optional runtime controls
+
+Use `.env` to override REST behavior when needed:
+
+- `REST_API_USER` (default: `csrestapi`)
+- `REST_API_PUBLISH_PORT` (default: `50443`)
+- `SERVICE_BIND_HOST` (default: `0.0.0.0`)
+- `SERVICE_PORT` (default: `50443`)
+- `UPSTREAM_HOST` (default: `127.0.0.1`)
+- `UPSTREAM_PORT` (default: `50050`)
+- `HEALTHCHECK_URL` (default: `https://127.0.0.1:${SERVICE_PORT}/health`)
+- `HEALTHCHECK_INSECURE` (default: `true`)
+
+Example:
+
+```dotenv
+REST_API_USER="csrestapi"
+REST_API_PUBLISH_PORT="50443"
+SERVICE_BIND_HOST="0.0.0.0"
+SERVICE_PORT="50443"
+UPSTREAM_HOST="127.0.0.1"
+UPSTREAM_PORT="50050"
+HEALTHCHECK_URL="https://127.0.0.1:50443/health"
+HEALTHCHECK_INSECURE="true"
+```
+
+### How to verify it is working
+
+```bash
+# service reachable (auth-protected endpoints may return 401/403)
+curl -ksS -o /dev/null -w '%{http_code}\n' https://127.0.0.1:50443/health
+
+# TLS negotiation works
+openssl s_client -connect 127.0.0.1:50443 -servername localhost -brief </dev/null
+
+# startup classification helper
+./tests/assert_startup_stability.sh cobaltstrike_server
 ```
 
 ## Runtime Behavior
