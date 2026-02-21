@@ -29,6 +29,11 @@ If `.env` is missing, or if required keys are empty, the script exits immediatel
 - `UPSTREAM_PORT` (default: `50050`)
 - `HEALTHCHECK_URL` (default: `https://127.0.0.1:${SERVICE_PORT}/health`)
 - `HEALTHCHECK_INSECURE` (default: `true`)
+- `TS_AUTHKEY` (Tailscale auth key for joining a Tailnet)
+- `TS_API_KEY` (Tailscale API key for automation)
+- `TS_EXTRA_ARGS` (Extra arguments for `tailscale up`)
+- `TS_USERSPACE` (Set to `true` for macOS or environments without `/dev/net/tun`)
+- `USE_TAILSCALE_IP` (Set to `true` to bind teamserver to the Tailscale IP)
 
 ### Runtime override environment variables (shell)
 
@@ -166,6 +171,34 @@ openssl s_client -connect 127.0.0.1:50443 -servername localhost -brief </dev/nul
 # startup classification helper
 ./tests/assert_startup_stability.sh cobaltstrike_server
 ```
+
+## Tailscale Integration
+
+This container includes [Tailscale](https://tailscale.com) for secure networking and remote access to the teamserver.
+
+### Configuration
+
+Add the following to your `.env` file to enable Tailscale:
+
+```dotenv
+# Required: join the Tailnet (ephemeral key recommended)
+TS_AUTHKEY="tskey-auth-..."
+
+# Optional: use Tailscale IP for the teamserver address
+USE_TAILSCALE_IP="true"
+
+# Optional: required for macOS or environments without TUN device access
+TS_USERSPACE="true"
+
+# Optional: extra arguments for 'tailscale up'
+TS_EXTRA_ARGS="--hostname=cobalt-docker"
+```
+
+### Benefits
+
+- **Secure Access**: Connect to your teamserver over a private Tailscale network without exposing ports to the public internet.
+- **Stable IP**: Using `USE_TAILSCALE_IP="true"` ensures the teamserver binds to the stable Tailscale IP, simplifying beacon callback configuration.
+- **Ephemeral Nodes**: Use ephemeral auth keys to ensure the container is automatically removed from your Tailnet when it stops.
 
 ## Runtime Behavior
 

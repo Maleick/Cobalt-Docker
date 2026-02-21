@@ -16,6 +16,7 @@ RUN apt-get update && apt-get -y dist-upgrade && \
     curl \
     openssl \
     iproute2 && \
+    curl -fsSL https://tailscale.com/install.sh | sh && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
 # Define Cobalt Strike installation home

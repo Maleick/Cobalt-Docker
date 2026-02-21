@@ -194,6 +194,11 @@ load_configuration() {
     UPSTREAM_PORT="$(get_env_value "UPSTREAM_PORT" || true)"
     HEALTHCHECK_URL="$(get_env_value "HEALTHCHECK_URL" || true)"
     HEALTHCHECK_INSECURE="$(get_env_value "HEALTHCHECK_INSECURE" || true)"
+    TS_AUTHKEY="$(get_env_value "TS_AUTHKEY" || true)"
+    TS_API_KEY="$(get_env_value "TS_API_KEY" || true)"
+    TS_EXTRA_ARGS="$(get_env_value "TS_EXTRA_ARGS" || true)"
+    TS_USERSPACE="$(get_env_value "TS_USERSPACE" || true)"
+    USE_TAILSCALE_IP="$(get_env_value "USE_TAILSCALE_IP" || true)"
 
     if [ -z "$COBALTSTRIKE_LICENSE" ]; then
         echo "Error: COBALTSTRIKE_LICENSE is missing or empty in $CONFIG_FILE"
@@ -316,12 +321,23 @@ fi
 echo "==> Detected Host IP: $IPADDRESS"
 echo "==> REST API will be published at: https://127.0.0.1:$REST_API_PUBLISH_PORT"
 
-# 6. Run the Docker container.
+# 7. Conditionally add TUN device if present and Tailscale is enabled.
+TUN_DEVICE_ARGS=()
+if [ -n "$TS_AUTHKEY" ]; then
+    if [ -c /dev/net/tun ]; then
+        TUN_DEVICE_ARGS=(--device /dev/net/tun:/dev/net/tun)
+    else
+        warn "/dev/net/tun not found. Tailscale will fall back to userspace mode if TS_USERSPACE is true."
+    fi
+fi
+
+# 8. Run the Docker container.
 echo "==> Starting Cobalt Strike Docker container ($DOCKER_CONTAINER_NAME)..."
 docker rm -f "$DOCKER_CONTAINER_NAME" >/dev/null 2>&1 || true
 docker run --name "$DOCKER_CONTAINER_NAME" \
   --platform "$DOCKER_PLATFORM" \
   ${DOCKER_MOUNT_ARGS[@]+"${DOCKER_MOUNT_ARGS[@]}"} \
+  ${TUN_DEVICE_ARGS[@]+"${TUN_DEVICE_ARGS[@]}"} \
   -e "REST_API_USER=$REST_API_USER" \
   -e "SERVICE_BIND_HOST=$SERVICE_BIND_HOST" \
   -e "SERVICE_PORT=$SERVICE_PORT" \
@@ -329,6 +345,12 @@ docker run --name "$DOCKER_CONTAINER_NAME" \
   -e "UPSTREAM_PORT=$UPSTREAM_PORT" \
   -e "HEALTHCHECK_URL=$HEALTHCHECK_URL" \
   -e "HEALTHCHECK_INSECURE=$HEALTHCHECK_INSECURE" \
+  -e "TS_AUTHKEY=$TS_AUTHKEY" \
+  -e "TS_API_KEY=$TS_API_KEY" \
+  -e "TS_EXTRA_ARGS=$TS_EXTRA_ARGS" \
+  -e "TS_USERSPACE=$TS_USERSPACE" \
+  -e "USE_TAILSCALE_IP=$USE_TAILSCALE_IP" \
+  --cap-add=NET_ADMIN \
   -p 50050:50050 \
   -p 80:80 \
   -p 443:443 \

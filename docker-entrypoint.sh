@@ -15,6 +15,7 @@ HEALTHCHECK_URL="${HEALTHCHECK_URL:-https://127.0.0.1:${SERVICE_PORT}/health}"
 
 TEAMSERVER_PID=""
 REST_PID=""
+TS_PID=""
 
 cleanup() {
     local exit_code="$?"
@@ -25,6 +26,10 @@ cleanup() {
 
     if [ -n "$TEAMSERVER_PID" ] && kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
         kill "$TEAMSERVER_PID" 2>/dev/null || true
+    fi
+
+    if [ -n "$TS_PID" ] && kill -0 "$TS_PID" 2>/dev/null; then
+        kill "$TS_PID" 2>/dev/null || true
     fi
 
     wait 2>/dev/null || true
@@ -106,6 +111,43 @@ esac
 TEAMSERVER_HOST="$1"
 TEAMSERVER_PASSWORD="$2"
 TEAMSERVER_PROFILE="${3:-}"
+
+# Tailscale logic
+if [ -n "${TS_AUTHKEY:-}" ]; then
+    echo "==> Starting tailscaled..."
+    # If the user wants to use userspace networking (no /dev/net/tun)
+    TS_TUN_ARGS="--tun=tailscale0"
+    if [ "${TS_USERSPACE:-}" = "true" ]; then
+        TS_TUN_ARGS="--tun=userspace-networking"
+    fi
+
+    tailscaled ${TS_TUN_ARGS} --state=mem: --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1055 &
+    TS_PID="$!"
+
+    echo "==> Waiting for tailscaled to start..."
+    for _ in $(seq 1 10); do
+        if tailscale status >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+
+    echo "==> Authenticating to Tailscale..."
+    tailscale up --authkey="${TS_AUTHKEY}" ${TS_EXTRA_ARGS:-}
+
+    if [ "${USE_TAILSCALE_IP:-}" = "true" ]; then
+        echo "==> Waiting for Tailscale IP..."
+        for _ in $(seq 1 30); do
+            TS_IP=$(tailscale ip -4)
+            if [ -n "$TS_IP" ]; then
+                TEAMSERVER_HOST="$TS_IP"
+                echo "==> Overriding TEAMSERVER_HOST with Tailscale IP: $TEAMSERVER_HOST"
+                break
+            fi
+            sleep 1
+        done
+    fi
+fi
 
 TEAMSERVER_CMD=("$TEAMSERVER_BIN" "$TEAMSERVER_HOST" "$TEAMSERVER_PASSWORD")
 if [ -n "$TEAMSERVER_PROFILE" ]; then
