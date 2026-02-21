@@ -2,6 +2,8 @@
 
 This project builds and runs a Cobalt Strike team server in Docker. It supports Cobalt Strike **4.12** and now starts the REST API (`csrestapi`) automatically alongside teamserver.
 
+For a standalone neutral example (custom app on `50051` with optional Tailscale), see `/opt/Cobalt-Docker/benign-docker-template/README.md`.
+
 ## Prerequisites
 
 - [Docker](https://www.docker.com/get-started)
