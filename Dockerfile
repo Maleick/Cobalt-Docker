@@ -33,10 +33,9 @@ RUN export TOKEN=$(curl -s https://download.cobaltstrike.com/download -d "dlkey=
     update-ca-certificates -f && \
     cd /opt/cobaltstrike && \
     echo "${COBALTSTRIKE_LICENSE}" | ./update && \
-    mkdir /opt/cobaltstrike/mount
+    mkdir -p /opt/cobaltstrike/mount
 
-# Copy any local malleable profiles into the image so they can be used
-# even when a host bind mount is not available.
+# Copy any local malleable profiles into the image if they exist
 COPY malleable.profile* /opt/cobaltstrike/mount/
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

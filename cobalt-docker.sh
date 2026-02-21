@@ -32,7 +32,7 @@ MOUNT_SOURCE="${MOUNT_SOURCE:-${COBALT_DOCKER_MOUNT_SOURCE:-$SCRIPT_DIR}}"
 #   ./cobalt-docker.sh lint [profile]       # build + lint only
 #   ./cobalt-docker.sh custom.profile --lint# build + lint + run
 
-PROFILE_NAME="malleable.profile"
+PROFILE_NAME=""
 DO_LINT=false
 LINT_ONLY=false
 REST_API_USER=""
@@ -145,6 +145,18 @@ image_has_file() {
 }
 
 configure_mount_mode() {
+    if [ -z "$PROFILE_NAME" ]; then
+        USE_BIND_MOUNT=false
+        DOCKER_MOUNT_ARGS=()
+        if [ -d "$MOUNT_SOURCE" ] && docker_can_bind_mount_path "$MOUNT_SOURCE"; then
+            USE_BIND_MOUNT=true
+            DOCKER_MOUNT_ARGS=(--mount "type=bind,source=$MOUNT_SOURCE,target=$CONTAINER_MOUNT_TARGET")
+            echo "==> Bind mount enabled: $MOUNT_SOURCE -> $CONTAINER_MOUNT_TARGET"
+        fi
+        PROFILE_CONTAINER_PATH=""
+        return
+    fi
+
     PROFILE_CONTAINER_PATH="$CONTAINER_MOUNT_TARGET/$PROFILE_NAME"
 
     if [ -d "$MOUNT_SOURCE" ] && docker_can_bind_mount_path "$MOUNT_SOURCE"; then
@@ -287,7 +299,7 @@ echo "==> Mount source candidate: $MOUNT_SOURCE"
 configure_mount_mode
 
 # 4. Optionally lint the profile with c2lint inside the Docker image.
-if [ "$DO_LINT" = true ]; then
+if [ "$DO_LINT" = true ] && [ -n "$PROFILE_NAME" ]; then
     echo "==> Running c2lint against $PROFILE_NAME inside Docker image..."
     docker run --rm \
       --platform "$DOCKER_PLATFORM" \
@@ -360,4 +372,4 @@ docker run --name "$DOCKER_CONTAINER_NAME" \
   "$DOCKER_IMAGE_NAME":latest \
   "$IPADDRESS" \
   "$TEAMSERVER_PASSWORD" \
-  "$PROFILE_CONTAINER_PATH"
+  ${PROFILE_CONTAINER_PATH:+"$PROFILE_CONTAINER_PATH"}

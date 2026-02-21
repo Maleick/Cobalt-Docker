@@ -62,8 +62,7 @@ TEAMSERVER_PASSWORD="your-teamserver-password"
 - `AGENTS.md`: Local repository workflow guidance for coding agents.
 - `.env.example`: Template for required and optional runtime configuration.
 - `.gitignore`: Keeps secrets out of git (including `.env`) while allowing `.env.example`.
-- `malleable.profile`: Default Malleable C2 profile.
-- `malleable.profile.4.12-drip` / `malleable.profile.4.12-drip-vaex`: Additional example profiles for 4.12.
+- `malleable.profile*` (Optional): If present, these profiles will be copied into the Docker image.
 
 ## Usage
 
@@ -96,14 +95,11 @@ chmod +x cobalt-docker.sh
 ### Profile linting (`c2lint`)
 
 ```bash
-# Lint default profile only
-./cobalt-docker.sh lint
-
 # Lint a specific profile only
-./cobalt-docker.sh lint malleable.profile.4.12-drip
+./cobalt-docker.sh lint custom.profile
 
 # Lint and then run
-./cobalt-docker.sh malleable.profile.4.12-drip --lint
+./cobalt-docker.sh custom.profile --lint
 ```
 
 ## REST API Integration
