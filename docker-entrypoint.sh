@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-TEAMSERVER_BIN="/opt/cobaltstrike/server/teamserver"
-REST_SERVER_DIR="/opt/cobaltstrike/server/rest-server"
-REST_SERVER_BIN="$REST_SERVER_DIR/csrestapi"
+TEAMSERVER_BIN="${TEAMSERVER_BIN:-/opt/cobaltstrike/server/teamserver}"
+REST_SERVER_DIR="${REST_SERVER_DIR:-/opt/cobaltstrike/server/rest-server}"
+REST_SERVER_BIN="${REST_SERVER_BIN:-$REST_SERVER_DIR/csrestapi}"
 REST_API_USER="${REST_API_USER:-csrestapi}"
 SERVICE_BIND_HOST="${SERVICE_BIND_HOST:-0.0.0.0}"
 SERVICE_PORT="${SERVICE_PORT:-50443}"
@@ -14,6 +14,7 @@ HEALTHCHECK_INSECURE="${HEALTHCHECK_INSECURE:-true}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-https://127.0.0.1:${SERVICE_PORT}/health}"
 TS_USERSPACE="${TS_USERSPACE:-false}"
 USE_TAILSCALE_IP="${USE_TAILSCALE_IP:-false}"
+STARTUP_PROBE_TIMEOUT_SECONDS="${STARTUP_PROBE_TIMEOUT_SECONDS:-60}"
 
 TEAMSERVER_PID=""
 REST_PID=""
@@ -57,6 +58,11 @@ fail_phase() {
 is_valid_port() {
     local port="$1"
     [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ]
+}
+
+is_valid_positive_integer() {
+    local value="$1"
+    [[ "$value" =~ ^[0-9]+$ ]] && [ "$value" -ge 1 ]
 }
 
 normalize_bool_or_fail() {
@@ -111,8 +117,8 @@ wait_for_teamserver_tls_readiness() {
     local phase="teamserver-ready"
     local endpoint="$UPSTREAM_HOST:$UPSTREAM_PORT"
 
-    log_phase "$phase" "waiting for TLS readiness on $endpoint (timeout=60s)"
-    for _ in $(seq 1 60); do
+    log_phase "$phase" "waiting for TLS readiness on $endpoint (timeout=${STARTUP_PROBE_TIMEOUT_SECONDS}s)"
+    for _ in $(seq 1 "$STARTUP_PROBE_TIMEOUT_SECONDS"); do
         if ! kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
             fail_phase "$phase" "teamserver exited before becoming TLS-ready on $endpoint"
         fi
@@ -125,14 +131,14 @@ wait_for_teamserver_tls_readiness() {
         sleep 1
     done
 
-    fail_phase "$phase" "teamserver did not become TLS-ready on $endpoint within 60s"
+    fail_phase "$phase" "teamserver did not become TLS-ready on $endpoint within ${STARTUP_PROBE_TIMEOUT_SECONDS}s"
 }
 
 wait_for_rest_healthcheck() {
     local phase="rest-ready"
 
-    log_phase "$phase" "waiting for HTTPS healthcheck at $HEALTHCHECK_URL (insecure=$HEALTHCHECK_INSECURE, timeout=60s)"
-    for _ in $(seq 1 60); do
+    log_phase "$phase" "waiting for HTTPS healthcheck at $HEALTHCHECK_URL (insecure=$HEALTHCHECK_INSECURE, timeout=${STARTUP_PROBE_TIMEOUT_SECONDS}s)"
+    for _ in $(seq 1 "$STARTUP_PROBE_TIMEOUT_SECONDS"); do
         if ! kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
             fail_phase "$phase" "teamserver exited while waiting for REST API health at $HEALTHCHECK_URL"
         fi
@@ -149,7 +155,7 @@ wait_for_rest_healthcheck() {
         sleep 1
     done
 
-    fail_phase "$phase" "REST API healthcheck failed at $HEALTHCHECK_URL within 60s"
+    fail_phase "$phase" "REST API healthcheck failed at $HEALTHCHECK_URL within ${STARTUP_PROBE_TIMEOUT_SECONDS}s"
 }
 
 monitor_runtime_processes() {
@@ -186,6 +192,10 @@ fi
 
 if ! is_valid_port "$UPSTREAM_PORT"; then
     fail_phase "preflight" "UPSTREAM_PORT must be an integer between 1 and 65535 (got '$UPSTREAM_PORT')"
+fi
+
+if ! is_valid_positive_integer "$STARTUP_PROBE_TIMEOUT_SECONDS"; then
+    fail_phase "preflight" "STARTUP_PROBE_TIMEOUT_SECONDS must be a positive integer (got '$STARTUP_PROBE_TIMEOUT_SECONDS')"
 fi
 
 HEALTHCHECK_INSECURE="$(normalize_bool_or_fail "preflight" "HEALTHCHECK_INSECURE" "$HEALTHCHECK_INSECURE")"

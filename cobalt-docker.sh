@@ -37,6 +37,7 @@ LINT_ONLY=false
 REST_API_USER=""
 REST_API_PUBLISH_PORT=""
 REST_API_PUBLISH_BIND="${REST_API_PUBLISH_BIND:-}"
+TEAMSERVER_HOST_OVERRIDE="${TEAMSERVER_HOST_OVERRIDE:-}"
 SERVICE_BIND_HOST=""
 SERVICE_PORT=""
 UPSTREAM_HOST=""
@@ -48,6 +49,8 @@ TEAMSERVER_PASSWORD=""
 USE_BIND_MOUNT=false
 DOCKER_MOUNT_ARGS=()
 PROFILE_CONTAINER_PATH=""
+MOUNT_MODE="none"
+PROFILE_SOURCE="none (no profile selected)"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -164,10 +167,92 @@ normalize_bool_setting() {
             printf '%s' "$value"
             ;;
         *)
-            echo "Error: $key must be 'true' or 'false' in $CONFIG_FILE"
+            echo "Error: $key must be 'true' or 'false' in $CONFIG_FILE" >&2
             exit 1
             ;;
     esac
+}
+
+set_mount_selection() {
+    MOUNT_MODE="$1"
+    PROFILE_SOURCE="$2"
+}
+
+detect_linux_host_target() {
+    local target=""
+
+    target="$(hostname -I 2>/dev/null | awk '{print $1}')"
+
+    if [ -z "$target" ] && command -v ip >/dev/null 2>&1; then
+        target="$(ip route get 1.1.1.1 2>/dev/null | awk '
+            /src/ {
+                for (i = 1; i <= NF; i++) {
+                    if ($i == "src") {
+                        print $(i + 1)
+                        exit
+                    }
+                }
+            }
+        ')"
+    fi
+
+    printf '%s' "$target"
+}
+
+detect_macos_host_target() {
+    local target=""
+    local default_iface=""
+
+    if command -v route >/dev/null 2>&1; then
+        default_iface="$(route -n get default 2>/dev/null | awk '/interface:/ { print $2; exit }')"
+    fi
+
+    if [ -n "$default_iface" ] && command -v ipconfig >/dev/null 2>&1; then
+        target="$(ipconfig getifaddr "$default_iface" 2>/dev/null || true)"
+    fi
+
+    if [ -z "$target" ] && command -v ipconfig >/dev/null 2>&1; then
+        for iface in en0 en1; do
+            target="$(ipconfig getifaddr "$iface" 2>/dev/null || true)"
+            if [ -n "$target" ]; then
+                break
+            fi
+        done
+    fi
+
+    if [ -z "$target" ]; then
+        target="$(ifconfig 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" { print $2; exit }')"
+    fi
+
+    printf '%s' "$target"
+}
+
+detect_host_target() {
+    local os_name="$1"
+    local target=""
+
+    if [ -n "$TEAMSERVER_HOST_OVERRIDE" ]; then
+        printf '%s' "$TEAMSERVER_HOST_OVERRIDE"
+        return 0
+    fi
+
+    case "$os_name" in
+        Linux)
+            target="$(detect_linux_host_target)"
+            ;;
+        Darwin)
+            target="$(detect_macos_host_target)"
+            ;;
+        *)
+            return 2
+            ;;
+    esac
+
+    if [ -z "$target" ]; then
+        return 1
+    fi
+
+    printf '%s' "$target"
 }
 
 docker_can_bind_mount_path() {
@@ -192,15 +277,31 @@ image_has_file() {
 }
 
 configure_mount_mode() {
+    USE_BIND_MOUNT=false
+    DOCKER_MOUNT_ARGS=()
+    PROFILE_CONTAINER_PATH=""
+
     if [ -z "$PROFILE_NAME" ]; then
-        USE_BIND_MOUNT=false
-        DOCKER_MOUNT_ARGS=()
-        if [ -d "$MOUNT_SOURCE" ] && docker_can_bind_mount_path "$MOUNT_SOURCE"; then
+        if [ ! -d "$MOUNT_SOURCE" ]; then
+            warn "Mount source path does not exist: $MOUNT_SOURCE"
+            set_mount_selection "none" "none (no profile selected)"
+            echo "==> Mount mode: $MOUNT_MODE"
+            echo "==> Profile source: $PROFILE_SOURCE"
+            return
+        fi
+
+        if docker_can_bind_mount_path "$MOUNT_SOURCE"; then
             USE_BIND_MOUNT=true
             DOCKER_MOUNT_ARGS=(--mount "type=bind,source=$MOUNT_SOURCE,target=$CONTAINER_MOUNT_TARGET")
+            set_mount_selection "bind" "none (no profile selected; host mount enabled)"
             echo "==> Bind mount enabled: $MOUNT_SOURCE -> $CONTAINER_MOUNT_TARGET"
+        else
+            warn "Bind mount source is not daemon-visible for this Docker context: $MOUNT_SOURCE"
+            set_mount_selection "none" "none (no profile selected)"
         fi
-        PROFILE_CONTAINER_PATH=""
+
+        echo "==> Mount mode: $MOUNT_MODE"
+        echo "==> Profile source: $PROFILE_SOURCE"
         return
     fi
 
@@ -215,13 +316,18 @@ configure_mount_mode() {
             exit 1
         fi
 
+        set_mount_selection "bind" "bind-mounted profile: $MOUNT_SOURCE/$PROFILE_NAME"
         echo "==> Bind mount enabled: $MOUNT_SOURCE -> $CONTAINER_MOUNT_TARGET"
+        echo "==> Mount mode: $MOUNT_MODE"
+        echo "==> Profile source: $PROFILE_SOURCE"
         return
     fi
 
-    USE_BIND_MOUNT=false
-    DOCKER_MOUNT_ARGS=()
-    warn "Bind mount source is not daemon-visible for this Docker context: $MOUNT_SOURCE"
+    if [ ! -d "$MOUNT_SOURCE" ]; then
+        warn "Mount source path does not exist: $MOUNT_SOURCE"
+    else
+        warn "Bind mount source is not daemon-visible for this Docker context: $MOUNT_SOURCE"
+    fi
     warn "Falling back to in-image profiles (no host bind mount)."
 
     if ! image_has_file "$PROFILE_CONTAINER_PATH"; then
@@ -231,7 +337,10 @@ configure_mount_mode() {
         exit 1
     fi
 
+    set_mount_selection "fallback" "in-image profile: $PROFILE_CONTAINER_PATH"
     echo "==> Fallback mode enabled (USE_BIND_MOUNT=false). Using in-image profile: $PROFILE_CONTAINER_PATH"
+    echo "==> Mount mode: $MOUNT_MODE"
+    echo "==> Profile source: $PROFILE_SOURCE"
 }
 
 load_configuration() {
@@ -259,6 +368,7 @@ load_configuration() {
     TS_EXTRA_ARGS="$(get_env_value "TS_EXTRA_ARGS" || true)"
     TS_USERSPACE="$(get_env_value "TS_USERSPACE" || true)"
     USE_TAILSCALE_IP="$(get_env_value "USE_TAILSCALE_IP" || true)"
+    TEAMSERVER_HOST_OVERRIDE_FROM_FILE="$(get_env_value "TEAMSERVER_HOST_OVERRIDE" || true)"
 
     require_non_empty_config_value "COBALTSTRIKE_LICENSE" "$COBALTSTRIKE_LICENSE"
     require_non_empty_config_value "TEAMSERVER_PASSWORD" "$TEAMSERVER_PASSWORD"
@@ -309,6 +419,15 @@ load_configuration() {
     TS_USERSPACE="$(normalize_bool_setting "TS_USERSPACE" "$TS_USERSPACE" "false")"
     USE_TAILSCALE_IP="$(normalize_bool_setting "USE_TAILSCALE_IP" "$USE_TAILSCALE_IP" "false")"
 
+    if [ -z "$TEAMSERVER_HOST_OVERRIDE" ]; then
+        TEAMSERVER_HOST_OVERRIDE="$TEAMSERVER_HOST_OVERRIDE_FROM_FILE"
+    fi
+
+    if [[ "$TEAMSERVER_HOST_OVERRIDE" =~ [[:space:]] ]]; then
+        echo "Error: TEAMSERVER_HOST_OVERRIDE must not contain whitespace in $CONFIG_FILE"
+        exit 1
+    fi
+
     if [ -z "$HEALTHCHECK_URL" ]; then
         HEALTHCHECK_URL="https://127.0.0.1:${SERVICE_PORT}/health"
     fi
@@ -352,21 +471,23 @@ fi
 
 # 5. Detect the operating system and get the host's primary IP address.
 OS="$(uname)"
-if [[ "$OS" == "Linux" ]]; then
-    IPADDRESS="$(hostname -I | awk '{print $1}')"
-elif [[ "$OS" == "Darwin" ]]; then # macOS
-    IPADDRESS="$(ifconfig en0 | grep "inet " | awk '{print $2}')"
+TEAMSERVER_HOST_TARGET="$(detect_host_target "$OS" || true)"
+
+if [ -z "$TEAMSERVER_HOST_TARGET" ]; then
+    if [[ "$OS" != "Linux" && "$OS" != "Darwin" ]]; then
+        echo "Error: Unsupported OS for automatic host target detection: $OS"
+    else
+        echo "Error: Could not determine a host target for OS=$OS."
+    fi
+    echo "Set TEAMSERVER_HOST_OVERRIDE in $CONFIG_FILE (or environment) and re-run ./cobalt-docker.sh"
+    exit 1
+fi
+
+if [ -n "$TEAMSERVER_HOST_OVERRIDE" ]; then
+    echo "==> Using TEAMSERVER_HOST_OVERRIDE: $TEAMSERVER_HOST_TARGET"
 else
-    echo "Unsupported OS: $OS"
-    exit 1
+    echo "==> Detected host target ($OS): $TEAMSERVER_HOST_TARGET"
 fi
-
-if [ -z "$IPADDRESS" ]; then
-    echo "Error: Could not determine the host IP address."
-    exit 1
-fi
-
-echo "==> Detected Host IP: $IPADDRESS"
 echo "==> REST API will be published at: https://$REST_API_PUBLISH_BIND:$REST_API_PUBLISH_PORT"
 
 # 7. Conditionally add TUN device if present and Tailscale is enabled.
@@ -406,6 +527,6 @@ docker run --name "$DOCKER_CONTAINER_NAME" \
   -p "$REST_API_PUBLISH_BIND:$REST_API_PUBLISH_PORT:$SERVICE_PORT" \
   --rm \
   "$DOCKER_IMAGE_NAME":latest \
-  "$IPADDRESS" \
+  "$TEAMSERVER_HOST_TARGET" \
   "$TEAMSERVER_PASSWORD" \
   ${PROFILE_CONTAINER_PATH:+"$PROFILE_CONTAINER_PATH"}

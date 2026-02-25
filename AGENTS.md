@@ -63,8 +63,14 @@ Launcher probes whether host `MOUNT_SOURCE` is daemon-visible for bind mounts.
 
 - Probe success: use bind mount.
 - Probe failure: fallback mode with in-image profiles only.
+- Branch output must include explicit `Mount mode:` and `Profile source:` markers.
 
 Fallback still expects selected profile to exist in `/opt/cobaltstrike/mount/<profile>`.
+
+Host/runtime target selection:
+
+- Auto-detect by platform defaults (Linux/macOS multi-strategy).
+- Use `TEAMSERVER_HOST_OVERRIDE` when auto-detection is unreliable.
 
 ## Validation Commands
 
@@ -72,6 +78,7 @@ Run shell checks after script edits:
 
 - `bash -n /opt/Cobalt-Docker/cobalt-docker.sh`
 - `bash -n /opt/Cobalt-Docker/docker-entrypoint.sh`
+- `./tests/run-shell-tests.sh`
 
 ## Secret Hygiene
 

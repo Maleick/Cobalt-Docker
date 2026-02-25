@@ -33,6 +33,7 @@ If `.env` is missing, or if required keys are empty, the script exits immediatel
 - `TS_EXTRA_ARGS` (Extra arguments for `tailscale up`)
 - `TS_USERSPACE` (default: `false`; must be `true` or `false`)
 - `USE_TAILSCALE_IP` (default: `false`; must be `true` or `false`)
+- `TEAMSERVER_HOST_OVERRIDE` (optional host/runtime target override for platform detection issues)
 
 Runtime control validation is strict: malformed port or boolean values fail preflight before Docker build/run.
 
@@ -44,6 +45,7 @@ These are shell environment variables passed when invoking `cobalt-docker.sh` (n
 - `MOUNT_SOURCE` (generic bind-mount override; defaults to the repo directory)
 - `COBALT_DOCKER_MOUNT_SOURCE` (legacy alias for `MOUNT_SOURCE`)
 - `REST_API_PUBLISH_BIND` (default: `127.0.0.1`; override REST API host bind)
+- `TEAMSERVER_HOST_OVERRIDE` (override host/runtime target passed to teamserver)
 
 ### Setup
 
@@ -253,6 +255,11 @@ the Docker daemon cannot see the host path even though your shell can. This comm
 - If mount probe succeeds: bind mount is used (`USE_BIND_MOUNT=true` behavior).
 - If mount probe fails: script falls back to in-image profiles (`USE_BIND_MOUNT=false` behavior) and continues.
 
+Launcher output now includes explicit branch markers:
+
+- `Mount mode: bind|fallback|none`
+- `Profile source: ...`
+
 Fallback limitation:
 
 - In fallback mode, only profiles baked into the image are available.
@@ -266,6 +273,9 @@ MOUNT_SOURCE=/Users/<user>/Cobalt-Docker ./cobalt-docker.sh
 
 # Override platform at build/run time
 DOCKER_PLATFORM=linux/amd64 ./cobalt-docker.sh
+
+# Override host/runtime target when platform detection is unreliable
+TEAMSERVER_HOST_OVERRIDE=10.42.99.10 ./cobalt-docker.sh
 ```
 
 ## TLS Handshake Warning Interpretation
@@ -311,6 +321,22 @@ docker inspect cobaltstrike_server
 - `HEALTHCHECK_INSECURE` is invalid (must be `true` or `false`)
 - `TS_USERSPACE` is invalid (must be `true` or `false`)
 - `USE_TAILSCALE_IP` is invalid (must be `true` or `false`)
+- `TEAMSERVER_HOST_OVERRIDE` is invalid (contains whitespace)
+- Host target auto-detection fails and no `TEAMSERVER_HOST_OVERRIDE` is provided
+
+## Shell Regression Tests
+
+Run the Phase 3 shell regression suite:
+
+```bash
+./tests/run-shell-tests.sh
+```
+
+Coverage includes:
+
+- preflight validation branches (`TEST-01`)
+- mount mode/profile source branches (`TEST-02`)
+- startup sequencing/readiness branches (`TEST-03`)
 
 ## Notes for Cobalt Strike 4.12
 
