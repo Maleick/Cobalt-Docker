@@ -22,11 +22,11 @@
   1. Protected branch targets are explicitly defined for `master` and `release/**`.
   2. Required checks are pinned exactly to the runtime reliability job names.
   3. PR review governance rules are explicit (approval threshold, stale review handling, conversation resolution).
-**Plans**: 2 plans
+**Plans**: 2/2 plans complete
 
 Plans:
-- [ ] 05-01: Define policy baseline and branch/check matrix
-- [ ] 05-02: Specify governance review and merge contract
+- [x] 05-01: Define policy baseline and branch/check matrix (completed 2026-02-25)
+- [x] 05-02: Specify governance review and merge contract (completed 2026-02-25)
 
 ### Phase 6: Governance Verification & Exceptions
 **Goal**: Ensure governance policy is auditable, reproducible, and resilient during emergency changes.
@@ -49,5 +49,5 @@ Phases execute in numeric order: 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 5. Branch Protection Policy Contract | 0/2 | Not started | - |
+| 5. Branch Protection Policy Contract | 2/2 | Complete    | 2026-02-25 |
 | 6. Governance Verification & Exceptions | 0/2 | Not started | - |

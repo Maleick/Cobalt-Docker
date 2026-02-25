@@ -9,12 +9,12 @@ Requirements for milestone v1.1. Each requirement maps to exactly one roadmap ph
 
 ### Governance Policy
 
-- [ ] **GOV-01**: Protected branch scope is explicitly defined for `master` and `release/**`.
-- [ ] **GOV-02**: Required status checks are explicitly pinned to:
+- [x] **GOV-01**: Protected branch scope is explicitly defined for `master` and `release/**`.
+- [x] **GOV-02**: Required status checks are explicitly pinned to:
   - `runtime-reliability / syntax-checks`
   - `runtime-reliability / shell-regression-suite`
   - `runtime-reliability / secret-scan`
-- [ ] **GOV-03**: PR review governance rules are documented, including approval threshold, stale review handling, and required conversation resolution.
+- [x] **GOV-03**: PR review governance rules are documented, including approval threshold, stale review handling, and required conversation resolution.
 - [ ] **GOV-04**: Direct-push and force-push exception policy is defined with least-privilege scope.
 
 ### Verification & Audit
@@ -48,9 +48,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GOV-01 | Phase 5 | Pending |
-| GOV-02 | Phase 5 | Pending |
-| GOV-03 | Phase 5 | Pending |
+| GOV-01 | Phase 5 | Complete |
+| GOV-02 | Phase 5 | Complete |
+| GOV-03 | Phase 5 | Complete |
 | GOV-04 | Phase 6 | Pending |
 | AUD-01 | Phase 6 | Pending |
 | AUD-02 | Phase 6 | Pending |
