@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cobalt Strike REST API"
+  short_description: "Cobalt Strike REST API usage and endpoint mapping"
+  default_prompt: "Use $cobaltstrike-rest-api to authenticate and operate Cobalt Strike REST API endpoints with concise, cited guidance."
