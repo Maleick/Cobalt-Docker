@@ -1,157 +1,133 @@
 # Pitfalls Research
 
-**Domain:** Cobalt Strike Docker deployment hardening
+**Domain:** Branch protection governance policy rollout
 **Researched:** 2026-02-25
 **Confidence:** HIGH
 
 ## Critical Pitfalls
 
-### Pitfall 1: Secrets leak through operational artifacts
+### Pitfall 1: Required-Check Name Drift
 
 **What goes wrong:**
-Sensitive values end up in logs, commits, or copied command history.
+Policy requires check names that no longer match workflow jobs, causing merges to block unexpectedly.
 
 **Why it happens:**
-Teams prioritize speed and debug verbosity over secret hygiene.
+Workflow job names are changed without updating branch protection/ruleset required checks.
 
 **How to avoid:**
-Use strict secret redaction rules, never print secret values, and gate docs/outputs through secret scans.
+Treat check names as contract values; any rename must include policy + docs update.
 
 **Warning signs:**
-Config examples include real-looking tokens, or troubleshooting output copies full env values.
+PRs show missing required check despite green workflow run.
 
 **Phase to address:**
-Phase 1 (security baseline and guardrails).
+Phase 5 (policy baseline and branch/check matrix).
 
 ---
 
-### Pitfall 2: Startup appears healthy while partially broken
+### Pitfall 2: Pattern Targeting Mistakes
 
 **What goes wrong:**
-One process is up but dependency sequencing is wrong, causing latent failures.
+Protection intended for release branches does not apply (or applies too broadly) due to branch pattern mistakes.
 
 **Why it happens:**
-Readiness checks are overly permissive or not tied to process liveness.
+`release/**` targeting and include/exclude rules are not validated against actual branch naming.
 
 **How to avoid:**
-Keep chained readiness gates with explicit liveness checks and bounded retries.
+Explicitly document branch patterns and verify effective coverage on representative branch names.
 
 **Warning signs:**
-Intermittent startup failures, early handshake noise, or service exits shortly after “healthy” logs.
+A release branch accepts direct push or unreviewed merge unexpectedly.
 
 **Phase to address:**
-Phase 2 (startup and readiness contract hardening).
+Phase 5 (policy baseline and targeting contract).
 
 ---
 
-### Pitfall 3: Platform-specific assumptions break portability
+### Pitfall 3: Bypass Scope Creep
 
 **What goes wrong:**
-Host networking or mount assumptions fail on different OS/docker contexts.
+Too many actors can bypass governance controls, undermining enforcement.
 
 **Why it happens:**
-Scripts are validated in one environment only.
+Emergency exceptions become permanent defaults; bypass list not reviewed.
 
 **How to avoid:**
-Codify platform checks, fallback modes, and matrix-style smoke validation.
+Define least-privilege bypass policy and review cadence; prefer PR-only bypass where available.
 
 **Warning signs:**
-Frequent “works on my machine” behavior and user reports tied to host type.
+Frequent merges occur through bypass path without documented incident context.
 
 **Phase to address:**
-Phase 3 (test matrix and platform resilience).
+Phase 6 (exceptions and reconciliation workflow).
 
 ---
 
-### Pitfall 4: Documentation drifts from runtime behavior
+### Pitfall 4: No Reconciliation After Emergency Changes
 
 **What goes wrong:**
-Operators follow docs that no longer match script defaults or flags.
+Policy is temporarily loosened during incident response and never restored.
 
 **Why it happens:**
-Runtime and docs are changed in separate passes.
+No explicit post-incident checklist or owner assignment.
 
 **How to avoid:**
-Enforce docs+runtime update policy in each phase and add drift checks in CI.
+Require emergency change ticket + reconciliation checklist with explicit closeout verification.
 
 **Warning signs:**
-Repeated support questions about setup, mismatch between README steps and real flags.
+Protection settings differ from documented contract days after incident.
 
 **Phase to address:**
-Phase 4 (contract alignment and maintainability).
+Phase 6 (verification and exception recovery).
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Manual ad-hoc verification only | Fast initial shipping | Regressions slip through | Short-lived prototypes only |
-| Hardcoded host-interface assumptions | Simpler scripts | Cross-platform failures | Never for general operator tooling |
-| Broad default port publishing | Fewer setup steps | Larger attack surface | Never by default |
+| Manual UI-only setup with no readback script | Fast initial setup | Drift is hard to detect | Initial bootstrap only; must follow with verification commands |
+| Broad admin bypass | Unblocks urgent merge quickly | Weak governance posture and unclear audit trail | Incident-only, time-bounded, reconciled immediately |
+| Unscoped review requirements | Fewer up-front decisions | Policy confusion across branches | Never for protected production branches |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Docker mount behavior | Assume host path is always daemon-visible | Probe capability first, then fallback with explicit logs |
-| Tailscale runtime | Treat as always-on dependency | Keep optional and validate auth/path before use |
-| Cobalt Strike download | Assume upstream response format is stable forever | Add failure messaging and maintain fallback guidance |
-
-## Performance Traps
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Rebuilding image for every tiny change | Slow feedback loops | Cache strategy + staged validation | Frequent local iteration |
-| Long opaque startup loops | Hard incident triage | Emit phase markers and reasoned timeout errors | Under intermittent runtime failures |
-| Serial manual smoke checks | Missed regressions | Scripted smoke checks in CI | As contributor count grows |
+| Branch protection + Actions | Required checks set to outdated names | Pin current job names and verify after workflow edits |
+| Rulesets + branch rules | Conflicting rules with unclear precedence | Document single source of truth for each target branch set |
+| CLI/API verification | Missing API-version header assumptions | Use versioned API patterns consistently |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Printing env values in debug logs | Credential exposure | Redact and avoid echoing secret fields |
-| Defaulting to wide network exposure | Unintended access paths | Keep localhost defaults, require explicit override |
-| Treating sample env files as optional to maintain | Onboarding misconfiguration | Keep `.env.example` synchronized and validated |
-
-## UX Pitfalls
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Ambiguous startup failure messages | Slow recovery and confusion | Provide precise failure reason + next command to run |
-| Hidden fallback mode | Unexpected runtime behavior | Log selected mode and profile source clearly |
-| Incomplete troubleshooting docs | Repeated support loops | Keep a concise, tested diagnostics checklist |
+| Allowing force push broadly | History rewrite and unreviewed content injection | Default block force push; use explicit limited exceptions |
+| Allowing direct push to protected branches | Bypasses review and CI gates | Restrict push rights and require PR flow |
+| Not requiring conversation resolution | Known concerns merged unresolved | Enable required conversation resolution |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Preflight:** required keys validated for missing/empty and malformed values
-- [ ] **Startup sequencing:** teamserver readiness gate enforced before REST start
-- [ ] **Mount behavior:** both bind and fallback paths exercised in tests
-- [ ] **Documentation:** README and AGENTS reflect current behavior and validation commands
-- [ ] **Security posture:** secret-safe outputs and explicit exposure defaults verified
-
-## Recovery Strategies
-
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Secret leak in docs/logs | HIGH | Rotate secrets, purge history/logs where possible, add scanning gate |
-| Startup instability | MEDIUM | Reproduce with deterministic probes, tighten readiness checks, add regression test |
-| Platform-specific failure | MEDIUM | Isolate host assumption, add conditional logic and platform test case |
-| Contract drift | LOW/MEDIUM | Update docs + scripts together and add drift verification |
+- [ ] **Protected branches defined:** verify both `master` and `release/**` are covered.
+- [ ] **Required checks configured:** verify exact names match workflow outputs.
+- [ ] **Review rules configured:** verify approval count + stale-review behavior.
+- [ ] **Bypass policy defined:** verify least-privilege actor list and rationale.
+- [ ] **Emergency workflow documented:** verify reconciliation steps and ownership.
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Secret leak risk | Phase 1 | No secret-pattern matches in docs/scripts output paths |
-| Startup partial-health risk | Phase 2 | Automated tests confirm ordered readiness semantics |
-| Platform assumption failures | Phase 3 | Matrix/smoke checks pass across target environments |
-| Docs/runtime drift | Phase 4 | Contract checks and docs validation pass in CI |
+| Required-check name drift | Phase 5 | Compare required checks with workflow job names |
+| Pattern targeting mistakes | Phase 5 | Validate branch pattern coverage on representative branches |
+| Bypass scope creep | Phase 6 | Review bypass list against least-privilege policy |
+| Missing reconciliation | Phase 6 | Confirm emergency checklist and closeout evidence |
 
 ## Sources
 
-- `.planning/codebase/CONCERNS.md`
-- `README.md`, `AGENTS.md`
-- launcher and entrypoint implementation scripts
+- https://docs.github.com/articles/about-required-reviews-for-pull-requests
+- https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+- https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository
+- https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
 
 ---
-*Pitfalls research for: Cobalt Strike Docker deployment hardening*
+*Pitfalls research for: branch protection governance*
 *Researched: 2026-02-25*

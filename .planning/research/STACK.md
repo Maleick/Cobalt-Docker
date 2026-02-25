@@ -1,8 +1,8 @@
 # Stack Research
 
-**Domain:** Cobalt Strike Docker deployment hardening
+**Domain:** GitHub branch protection and repository governance policy
 **Researched:** 2026-02-25
-**Confidence:** MEDIUM
+**Confidence:** HIGH
 
 ## Recommended Stack
 
@@ -10,83 +10,71 @@
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Bash | 5.x+ | Host/runtime orchestration scripts | Existing repo already uses strict shell; minimal operational surface area |
-| Docker Engine + CLI | 24.x+ | Build and run containerized teamserver stack | Native fit for current launcher design and operator workflows |
-| Ubuntu base image | LTS stream | Stable runtime foundation for Cobalt Strike dependencies | Broad compatibility and package ecosystem |
-| OpenSSL + curl | Current distro packages | TLS and HTTP readiness probing | Reliable health gates without custom binaries |
-| GitHub Actions | Current | CI execution for lint/test automation | Existing `.github/workflows/` integration already present |
+| GitHub branch protection rules | Current GitHub Cloud behavior | Enforce per-branch merge and push constraints | Native control surface for required checks, review gates, and conversation resolution |
+| GitHub rulesets | Current GitHub Cloud behavior | Apply reusable branch targeting + bypass policy | Better governance scale than isolated one-off branch rules |
+| GitHub Actions status checks | Existing workflow checks | Supply required checks consumed by branch protection | Already implemented in repo and stable check names exist |
+| GitHub REST API (versioned) | `2022-11-28` | Machine-verifiable readback of branch protection/rulesets | Enables reproducible audit and drift detection |
 
-### Supporting Libraries
+### Supporting Libraries / Tools
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| bats-core | 1.x | Shell test harness | Regression tests for pure shell behavior and branch logic |
-| shellcheck | 0.9+ | Static shell analysis | Catch quoting, globbing, and undefined-variable errors early |
-| shfmt | 3.x | Shell formatting consistency | Keep scripts reviewable and reduce style churn |
-| hadolint | 2.x | Dockerfile linting | Validate image hygiene and best practices before build regressions |
+| Library/Tool | Version | Purpose | When to Use |
+|--------------|---------|---------|-------------|
+| GitHub CLI (`gh`) | 2.87.3 | Query and verify protection/ruleset state from terminal | Day-to-day operator verification and runbook commands |
+| `jq` | 1.6+ | Normalize API JSON for deterministic checks | Audit scripts and policy assertions |
+| `curl` | 7.8x+ | Raw REST fallback if `gh` abstraction is insufficient | Explicit API version pinning and troubleshooting |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| GNU Make (optional) | Task aliases for lint/test/smoke | Helps standardize contributor commands |
-| act (optional) | Local GitHub Actions dry runs | Useful for validating CI logic without pushing |
-| jq | Structured JSON extraction in CI scripts | Already common in workflow contexts |
+| `gh api` | Retrieve branch protection + rulesets | Works with scoped token, keeps output scriptable |
+| GitHub repository settings UI | Authoritative policy editing surface | Useful for initial setup and visual confirmation |
+| `.planning` docs | Persist policy contract decisions | Keeps implementation and governance intent aligned |
 
-## Installation
+## Installation / Access Prerequisites
 
 ```bash
-# macOS (Homebrew)
-brew install bash shellcheck shfmt bats-core hadolint jq
+# Verify CLI availability
+gh --version
+jq --version
 
-# Ubuntu/Debian (apt + package managers as needed)
-sudo apt-get update
-sudo apt-get install -y bash curl openssl jq shellcheck
-# Install bats-core/shfmt/hadolint via preferred package source or release binaries
+# Verify authenticated GitHub access
+gh auth status -h github.com
 ```
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| bats-core for shell tests | shunit2 | If organization already standardizes on shunit2 |
-| single canonical launcher script | docker compose wrapper | If multi-service expansion requires declarative orchestration |
-| `curl` + `openssl` probes | custom health binary | If richer telemetry and structured probe output are required |
+| Rulesets + branch protection alignment | Branch protection rules only | Small repos with minimal policy complexity |
+| CLI/API verification | Manual UI-only verification | One-time checks where automation is not required |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `source .env` with untrusted shell syntax | Can execute unintended code paths | Parse keys explicitly as done in `get_env_value` |
-| Unbounded sleep-based startup checks | Hides failure cause and adds nondeterminism | Bounded readiness loops with process-liveness checks |
-| Public REST API publish defaults | Expands attack surface by default | Localhost publish + explicit operator opt-in for wider exposure |
-| Unpinned third-party CI actions | Supply-chain drift and unexpected behavior changes | Pinned action SHAs and periodic controlled upgrades |
+| Non-unique check names across workflows | Can produce ambiguous required-check outcomes | Keep unique job names and pin exact required-check strings |
+| Ad-hoc admin bypass as default path | Breaks governance guarantees and auditability | Explicit bypass list with pull-request-only behavior where possible |
+| Unversioned API calls | Can drift with API behavior changes | Pin `X-GitHub-Api-Version: 2022-11-28` |
 
 ## Stack Patterns by Variant
 
-**If local single-operator deployment:**
-- Keep current script-first architecture.
-- Add shell test coverage + CI lint gates.
+**If repository policy remains simple:**
+- Use branch protection rules directly for `master` and `release/**`.
+- Keep required checks and review gates synchronized with workflow job names.
 
-**If multi-host/team deployment:**
-- Introduce declarative environment overlays and stronger secret management integration.
-- Add release tagging and reproducible build metadata.
-
-## Version Compatibility
-
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| Bash strict mode scripts | shellcheck + shfmt | Safe when scripts avoid bash-version-specific edge features |
-| Docker runtime scripts | Ubuntu base + OpenJDK 17 | Matches existing Cobalt Strike runtime requirements |
-| bats-core tests | GitHub Actions ubuntu runners | Stable default environment for shell test execution |
+**If policy complexity grows across many branches/repos:**
+- Use rulesets as primary policy layer, with explicit include/exclude patterns and bypass controls.
+- Keep branch protection/rulesets readback in scripted audit checks.
 
 ## Sources
 
-- `README.md`, `AGENTS.md`, `cobalt-docker.sh`, `docker-entrypoint.sh` (repository contract and implementation)
-- https://docs.docker.com/ (Docker engine/runtime guidance)
-- https://www.shellcheck.net/ (shell static analysis)
-- https://bats-core.readthedocs.io/ (shell testing framework)
+- https://docs.github.com/articles/about-required-reviews-for-pull-requests
+- https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+- https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+- https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+- https://docs.github.com/en/enterprise-cloud@latest/rest/branches/branch-protection
 
 ---
-*Stack research for: Cobalt Strike Docker deployment hardening*
+*Stack research for: branch protection governance*
 *Researched: 2026-02-25*

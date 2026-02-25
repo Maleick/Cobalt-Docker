@@ -1,6 +1,6 @@
 # Architecture Research
 
-**Domain:** Cobalt Strike Docker deployment hardening
+**Domain:** GitHub governance policy architecture
 **Researched:** 2026-02-25
 **Confidence:** HIGH
 
@@ -10,24 +10,22 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                    Host Orchestration Layer                 │
+│ Policy Contract Layer                                        │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────┐   ┌────────────────────────────┐  │
-│  │ cobalt-docker.sh     │   │ .env + profile inputs      │  │
-│  └──────────┬───────────┘   └──────────────┬─────────────┘  │
-│             │                              │                │
-├─────────────┴──────────────────────────────┴────────────────┤
-│                   Container Bootstrap Layer                 │
+│  PROJECT.md / REQUIREMENTS.md / ROADMAP.md                   │
+│  - Branch targets                                             │
+│  - Required checks                                            │
+│  - Review and exception rules                                 │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │ docker-entrypoint.sh                                  │  │
-│  │ teamserver -> TLS ready -> csrestapi -> HTTPS ready   │  │
-│  └───────────────────────────────────────────────────────┘  │
+│ Enforcement Layer                                             │
 ├─────────────────────────────────────────────────────────────┤
-│                    Service Runtime Layer                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ teamserver   │  │ csrestapi    │  │ optional tailscale│  │
-│  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│  GitHub Branch Protection + Rulesets                          │
+│  Runtime Reliability workflow check outputs                   │
+├─────────────────────────────────────────────────────────────┤
+│ Verification & Audit Layer                                    │
+├─────────────────────────────────────────────────────────────┤
+│  gh api / REST API readback / runbook checks                  │
+│  exception + reconciliation procedure                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -35,103 +33,80 @@
 
 | Component | Responsibility | Typical Implementation |
 |-----------|----------------|------------------------|
-| Host launcher | Validate config, build image, run container | Strict Bash script with explicit guards |
-| Entrypoint supervisor | Sequence process startup and cleanup | PID-aware shell with readiness probes |
-| Runtime services | Serve control and API interfaces | Cobalt Strike binaries + Java runtime |
-| CI workflows | Validate and automate repo behavior | GitHub Actions + pinned actions |
+| Policy docs | Define intent and exact governance requirements | `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md` |
+| Workflow checks | Emit required statuses for merge gating | `.github/workflows/runtime-reliability-gates.yml` |
+| GitHub rules config | Enforce merge/push/review behavior | Branch protection rules and/or repository rulesets |
+| Audit scripts/commands | Verify settings align with policy contract | `gh api` and `jq` checks documented in runbook/planning artifacts |
 
-## Recommended Project Structure
+## Recommended Project Structure (for governance artifacts)
 
 ```text
-repo/
-├── runtime/
-│   ├── cobalt-docker.sh
-│   └── docker-entrypoint.sh
-├── docs/
-│   ├── README.md
-│   └── AGENTS.md
-├── .planning/
-│   ├── codebase/
-│   ├── research/
-│   ├── REQUIREMENTS.md
-│   ├── ROADMAP.md
-│   └── STATE.md
-└── .github/
-    ├── workflows/
-    └── commands/
+.planning/
+├── PROJECT.md
+├── REQUIREMENTS.md
+├── ROADMAP.md
+├── STATE.md
+├── research/
+│   ├── STACK.md
+│   ├── FEATURES.md
+│   ├── ARCHITECTURE.md
+│   ├── PITFALLS.md
+│   └── SUMMARY.md
+└── milestones/
+    └── v1.0-research/
 ```
-
-### Structure Rationale
-
-- **runtime/** style boundary (conceptual): keeps startup contracts explicit and test-focused.
-- **docs/** alignment: operator contract and implementation should evolve together.
-- **.planning/** as execution memory: preserves requirements-to-phase traceability.
 
 ## Architectural Patterns
 
-### Pattern 1: Fail-fast Contract Validation
+### Pattern 1: Policy-As-Contract
 
-**What:** Validate all critical inputs before build/run side effects.
-**When to use:** Entry scripts with external dependencies and secrets.
-**Trade-offs:** More upfront checks, but faster and safer failure feedback.
+**What:** Treat branch governance decisions as explicit REQ IDs and phase deliverables.
+**When to use:** Any repo where check enforcement must be auditable and reproducible.
+**Trade-offs:** More documentation overhead, lower ambiguity.
 
-### Pattern 2: Readiness-Gated Process Chaining
+### Pattern 2: Read-After-Write Verification
 
-**What:** Start dependent process only after upstream endpoint is verifiably ready.
-**When to use:** Multi-process containers with startup ordering constraints.
-**Trade-offs:** Slight startup delay versus dramatically better determinism.
+**What:** After setting governance policies, immediately query GitHub API/CLI and compare to contract.
+**When to use:** Required-check changes, review-rule edits, bypass updates.
+**Trade-offs:** Extra operational step, but catches silent drift.
 
-### Pattern 3: Capability Probe + Fallback
+### Pattern 3: Least-Privilege Bypass
 
-**What:** Detect environment capabilities (bind mount visibility) and switch to safe fallback path.
-**When to use:** Host/daemon behavior differs by platform.
-**Trade-offs:** Additional branching complexity, improved portability.
+**What:** Minimize bypass actors; prefer pull-request-only bypass where supported.
+**When to use:** Emergency access design and admin exception paths.
+**Trade-offs:** Slightly slower emergency flow, significantly better audit trail.
 
 ## Data Flow
 
-### Request Flow
+### Merge Decision Flow
 
 ```text
-Operator command
-  -> launcher validation/build/run
-  -> container entrypoint
-  -> teamserver readiness
-  -> REST API readiness
-  -> operator health checks and usage
+Pull Request Opened
+    ↓
+GitHub Actions jobs run
+    ↓
+Status checks published (syntax-checks, shell-regression-suite, secret-scan)
+    ↓
+Branch protection/ruleset evaluates:
+  - required checks
+  - approvals
+  - conversation resolution
+  - push restrictions
+    ↓
+Merge allowed or blocked
 ```
 
-### Key Data Flows
+### Governance Verification Flow
 
-1. **Configuration flow:** `.env` + shell overrides -> launcher normalization -> container env vars.
-2. **Startup flow:** teamserver process state -> TLS probe success -> REST API startup -> HTTP health success.
-3. **Profile flow:** host mount probe -> bind mode or fallback profile path -> runtime startup arguments.
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Single operator / single host | Current monolithic launcher + entrypoint is appropriate |
-| Team operations across environments | Add environment overlays, better secrets controls, and CI smoke matrix |
-| High change frequency contributors | Prioritize regression tests and contract checks before structural rewrites |
-
-### Scaling Priorities
-
-1. **First bottleneck:** confidence in script refactors without tests.
-2. **Second bottleneck:** environment variance (host networking/mount behavior).
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Implicit Startup Order
-
-**What people do:** start all processes concurrently and hope dependencies settle.
-**Why it's wrong:** creates nondeterministic failures and poor incident diagnosis.
-**Do this instead:** enforce explicit readiness gates with bounded retries.
-
-### Anti-Pattern 2: Docs Decoupled from Runtime
-
-**What people do:** update scripts without updating operator docs.
-**Why it's wrong:** onboarding and incident response degrade quickly.
-**Do this instead:** treat docs as contract artifacts in same phase/commit scope.
+```text
+Policy configured (UI/API)
+    ↓
+gh api readback for target branches / rulesets
+    ↓
+jq assertions against contract values
+    ↓
+Pass: governance aligned | Fail: drift remediation required
+```
 
 ## Integration Points
 
@@ -139,24 +114,24 @@ Operator command
 
 | Service | Integration Pattern | Notes |
 |---------|---------------------|-------|
-| Cobalt Strike download endpoint | Build-time artifact retrieval via `curl` | Sensitive to upstream format/API changes |
-| Tailscale control plane | Optional runtime auth + overlay networking | Must remain optional and explicit |
-| GitHub Actions | Event-driven CI and automation workflows | Keep pinning and permission scopes tight |
+| GitHub Settings UI | Manual rule/ruleset creation and edits | Primary admin surface |
+| GitHub REST API | Programmatic readback for protection/ruleset state | Pin API version for stability |
+| GitHub Actions | Provides check contexts consumed by protection rules | Job-name stability is mandatory |
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| Launcher -> Entrypoint | CLI args + env vars | Must preserve parameter contract stability |
-| Entrypoint -> Services | Process invocation + health probes | Keep probes and timeouts explicit |
-| Planning -> Execution | Requirements/roadmap/state artifacts | Enables consistent phase execution |
+| Planning docs ↔ repository settings | Human policy mapping + verification checklist | Keep one-to-one mapping to REQ IDs |
+| Workflow checks ↔ required-check contract | Check name string matching | Any rename requires policy update |
 
 ## Sources
 
-- `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/STRUCTURE.md`
-- `cobalt-docker.sh`, `docker-entrypoint.sh`, `Dockerfile`
-- `README.md`, `AGENTS.md`
+- https://docs.github.com/articles/about-required-reviews-for-pull-requests
+- https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+- https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+- https://docs.github.com/en/enterprise-cloud@latest/rest/branches/branch-protection
 
 ---
-*Architecture research for: Cobalt Strike Docker deployment hardening*
+*Architecture research for: branch protection governance*
 *Researched: 2026-02-25*

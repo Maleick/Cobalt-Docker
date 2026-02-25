@@ -1,125 +1,108 @@
 # Project Research Summary
 
 **Project:** Cobalt-Docker Runtime Hardening
-**Domain:** Cobalt Strike Docker deployment hardening
+**Domain:** GitHub branch protection governance for CI policy enforcement
 **Researched:** 2026-02-25
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project is a runtime-hardening and execution-discipline effort, not a greenfield product build. The existing repository already provides a working deployment core (`cobalt-docker.sh` and `docker-entrypoint.sh`) with required preflight checks, ordered startup, and health probes. The highest-leverage path is to preserve that contract while improving safety, test coverage, and documentation reliability.
+This milestone should treat branch governance as a policy contract layered on top of the runtime reliability checks already implemented in-repo. The most reliable path is to define explicit protected branch targets (`master`, `release/**`), pin exact required checks, and document review/exception rules so enforcement behavior is predictable.
 
-Research indicates the recommended approach is shell-first stabilization with explicit guardrails: add automated regression checks for critical shell branches, tighten security defaults and messaging, and continuously align docs with runtime behavior. The dominant risks are secret leakage, platform-specific assumptions, and drift between implementation and operator guidance.
+Research indicates that required-check reliability depends on stable and unique job names, and that governance quality improves when bypass permissions are constrained and auditable. A read-after-write verification loop via `gh api`/REST is necessary to detect policy drift quickly.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The current Bash + Docker architecture is still the right execution model for this repository. Add supporting quality tools (`shellcheck`, `shfmt`, `bats-core`, optionally `hadolint`) rather than replacing orchestration wholesale.
+Use GitHub branch protection/rulesets as enforcement, GitHub Actions check contexts as merge gates, and `gh api` + `jq` for policy verification. Keep API calls version-pinned and verify check names after any workflow rename.
 
 **Core technologies:**
-- Bash: runtime orchestration and contract enforcement
-- Docker Engine/CLI: build and deployment runtime
-- OpenSSL + curl: readiness probes and startup verification
-- GitHub Actions: continuous contract validation
+- GitHub branch protection / rulesets: policy enforcement surface.
+- GitHub Actions checks: required status checks contract.
+- GitHub REST API + GitHub CLI: reproducible governance verification.
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Required `.env` preflight and hard-fail behavior
-- Ordered startup with explicit readiness gates
-- Deterministic mount behavior with clear fallback semantics
-- Secure default REST exposure and diagnostics operators can act on
+- Protected branch scope for `master` and `release/**`.
+- Required checks pinned to:
+  - `runtime-reliability / syntax-checks`
+  - `runtime-reliability / shell-regression-suite`
+  - `runtime-reliability / secret-scan`
+- PR review governance and required conversation resolution.
+- Least-privilege direct-push/force-push exceptions.
+- Reproducible verification and emergency reconciliation procedure.
 
-**Should have (competitive):**
-- Automated shell regression suite for critical branches
-- Docs/runtime drift checks in CI
-
-**Defer (v2+):**
-- Multi-environment orchestration expansion
-- Advanced observability integrations beyond current operational needs
+**Defer (v1.2):**
+- CI depth expansion (`shellcheck`/multi-OS matrix).
+- Broader post-start operational hardening docs.
+- Contributor evidence-capture enhancements.
 
 ### Architecture Approach
 
-Maintain host launcher + in-container supervisor layering, then harden contracts through tests and clearer diagnostics. Keep startup semantics deterministic: validate config, probe capabilities, gate process startup, and fail with explicit causes.
-
-**Major components:**
-1. Host launcher (`cobalt-docker.sh`) — validation/build/run control plane
-2. Container entrypoint (`docker-entrypoint.sh`) — startup sequencing and liveness management
-3. Supporting docs/CI contracts — enforce behavior integrity over time
+Use a three-layer model: policy contract docs (`PROJECT/REQUIREMENTS/ROADMAP`), enforcement layer (GitHub rules and required checks), and verification layer (`gh api` readback and reconciliation checklist). Each requirement should map to one phase to keep ownership clear.
 
 ### Critical Pitfalls
 
-1. **Secret leaks in logs/docs** — prevent with redaction and scanning gates
-2. **Partial-health startups** — prevent with strict liveness-aware readiness checks
-3. **Platform assumptions** — prevent with explicit portability checks and test coverage
-4. **Docs/runtime drift** — prevent with phase-level contract updates and CI validation
+1. **Required-check name drift** — lock check names and verify after workflow changes.
+2. **Branch pattern mis-targeting** — validate `master` and `release/**` coverage explicitly.
+3. **Bypass scope creep** — use least privilege and documented exception rationale.
+4. **Missing post-incident reconciliation** — require closeout checklist for emergency changes.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+### Phase 5: Branch Protection Policy Contract
+**Rationale:** Governance enforcement must be clearly defined before verification and exception workflows.
+**Delivers:** Target branch scope, required-check matrix, PR review/conversation governance contract.
+**Addresses:** `GOV-01`, `GOV-02`, `GOV-03`.
+**Avoids:** Name drift and branch-pattern ambiguity.
 
-### Phase 1: Security and Contract Baseline
-**Rationale:** Establish guardrails before making broader behavior changes.
-**Delivers:** Secret-safe practices, clear contract boundaries, baseline validation policy.
-**Addresses:** Must-have security and preflight expectations.
-**Avoids:** Secret-leak and contract ambiguity pitfalls.
-
-### Phase 2: Startup Determinism Hardening
-**Rationale:** Startup sequencing is the critical runtime path.
-**Delivers:** Explicit, testable startup and readiness semantics.
-**Uses:** Existing probe and liveness patterns in current scripts.
-**Implements:** Entrypoint/liveness contract hardening.
-
-### Phase 3: Regression Test and Platform Resilience
-**Rationale:** Reduce refactor risk and environment breakage.
-**Delivers:** Automated shell regression checks and platform-oriented smoke coverage.
-**Uses:** Supporting tooling (`bats-core`, `shellcheck`, CI workflows).
-
-### Phase 4: Documentation and Maintainability Lock-in
-**Rationale:** Keep operational guidance and implementation synchronized.
-**Delivers:** Drift-resistant docs and contributor workflow conventions.
+### Phase 6: Governance Verification & Exceptions
+**Rationale:** Once policy is defined, ensure it is auditable and resilient during incidents.
+**Delivers:** Verification procedure and emergency exception/reconciliation policy.
+**Addresses:** `GOV-04`, `AUD-01`, `AUD-02`.
+**Avoids:** Bypass creep and unreconciled emergency policy drift.
 
 ### Phase Ordering Rationale
 
-- Security and contract clarity first, because every subsequent phase depends on trustworthy boundaries.
-- Startup determinism second, because runtime ordering is highest-risk operational behavior.
-- Automated tests third, because they codify known-good behavior for future changes.
-- Documentation lock-in last, because it should capture finalized runtime/test contracts.
+- Policy contract first, verification second.
+- Prevent ambiguous ownership by mapping each requirement to exactly one phase.
+- Keep v1.1 policy-only and defer broader reliability expansion to v1.2.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 3:** CI matrix strategy and deterministic shell test design details.
+- **Phase 5:** Rulesets vs branch-rule overlap behavior in this repo's org settings.
+- **Phase 6:** Practical audit command set that works for both UI and CLI users.
 
-Phases with standard patterns (skip deep research-phase):
-- **Phase 1, 2, 4:** established practices with strong repository-local context.
+Phases with standard patterns (low research risk):
+- **Phase 5:** Required-check and review settings are well documented in GitHub docs.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Directly matches current repository architecture |
-| Features | HIGH | Derived from existing contract + concrete hardening goals |
-| Architecture | HIGH | Current layering is explicit and already implemented |
-| Pitfalls | HIGH | Confirmed by codebase concerns and common shell/runtime failure modes |
+| Stack | HIGH | Directly supported by current GitHub docs and repo state |
+| Features | HIGH | Scope and required checks are explicit and bounded |
+| Architecture | HIGH | Three-layer contract/enforcement/verification model maps cleanly |
+| Pitfalls | HIGH | Common failure modes are well documented and observable |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- Exact CI matrix breadth for platform coverage should be right-sized to avoid noisy pipelines.
-- Some source-of-truth drift (for example template/env artifacts) needs explicit phase treatment.
+- Confirm final policy implementation surface (branch rules vs rulesets) based on org/admin capabilities.
+- Validate exact verification command set with current repository permissions.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `.planning/codebase/*.md`
-- `cobalt-docker.sh`, `docker-entrypoint.sh`, `Dockerfile`
-- `README.md`, `AGENTS.md`
-
-### Secondary (MEDIUM confidence)
-- Docker and shell tooling official documentation for quality tooling choices
+- https://docs.github.com/articles/about-required-reviews-for-pull-requests
+- https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+- https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+- https://docs.github.com/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+- https://docs.github.com/en/enterprise-cloud@latest/rest/branches/branch-protection
 
 ---
 *Research completed: 2026-02-25*
