@@ -12,7 +12,7 @@ This roadmap hardens an existing deployment baseline in four phases: contract/se
 
 - [x] **Phase 1: Contract and Security Baseline** - Lock required contracts and secret-safe defaults (completed 2026-02-25)
 - [x] **Phase 2: Startup Determinism and Diagnostics** - Make startup behavior consistently verifiable (completed 2026-02-25)
-- [ ] **Phase 3: Mount/Platform Resilience with Regression Tests** - Stabilize environment variance and test critical branches
+- [x] **Phase 3: Mount/Platform Resilience with Regression Tests** - Stabilize environment variance and test critical branches (completed 2026-02-25)
 - [ ] **Phase 4: CI Enforcement and Operator Runbook** - Enforce checks continuously and finalize troubleshooting guidance
 
 ## Phase Details
@@ -58,12 +58,12 @@ Plans:
   2. Platform-sensitive host/runtime path handling no longer fails silently.
   3. Automated shell tests cover preflight, mount mode, and startup sequencing branches.
   4. Test failures clearly identify the broken contract branch.
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 Plans:
-- [ ] 03-01: Harden mount and platform variance handling
-- [ ] 03-02: Add shell regression tests for preflight and mount branches
-- [ ] 03-03: Add startup sequencing/readiness regression tests
+- [x] 03-01: Harden mount and platform variance handling
+- [x] 03-02: Add shell regression tests for preflight and mount branches
+- [x] 03-03: Add startup sequencing/readiness regression tests
 
 ### Phase 4: CI Enforcement and Operator Runbook
 **Goal**: Enforce reliability checks continuously and ship a clear troubleshooting runbook.
@@ -88,5 +88,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Contract and Security Baseline | 3/3 | Complete    | 2026-02-25 |
 | 2. Startup Determinism and Diagnostics | 3/3 | Complete    | 2026-02-25 |
-| 3. Mount/Platform Resilience with Regression Tests | 0/3 | Not started | - |
+| 3. Mount/Platform Resilience with Regression Tests | 3/3 | Complete    | 2026-02-25 |
 | 4. CI Enforcement and Operator Runbook | 0/2 | Not started | - |

@@ -22,9 +22,9 @@ Requirements for the current hardening milestone. Each requirement maps to exact
 
 ### Mount & Platform Resilience
 
-- [ ] **MNT-01**: Launcher deterministically chooses bind mount or fallback mode using an explicit daemon-visibility probe.
-- [ ] **MNT-02**: Selected profile source (bind-mounted vs in-image fallback) is clearly surfaced to operators.
-- [ ] **MNT-03**: Host IP/runtime host selection handles platform variance without silent failure.
+- [x] **MNT-01**: Launcher deterministically chooses bind mount or fallback mode using an explicit daemon-visibility probe.
+- [x] **MNT-02**: Selected profile source (bind-mounted vs in-image fallback) is clearly surfaced to operators.
+- [x] **MNT-03**: Host IP/runtime host selection handles platform variance without silent failure.
 
 ### Security & Exposure
 
@@ -34,9 +34,9 @@ Requirements for the current hardening milestone. Each requirement maps to exact
 
 ### Testing & CI
 
-- [ ] **TEST-01**: Automated shell tests cover preflight validation branches.
-- [ ] **TEST-02**: Automated shell tests cover mount-mode decision branches.
-- [ ] **TEST-03**: Automated shell tests cover startup sequencing and readiness branch behavior.
+- [x] **TEST-01**: Automated shell tests cover preflight validation branches.
+- [x] **TEST-02**: Automated shell tests cover mount-mode decision branches.
+- [x] **TEST-03**: Automated shell tests cover startup sequencing and readiness branch behavior.
 - [ ] **TEST-04**: CI executes syntax/static checks and shell regression tests on pull requests.
 
 ### Documentation Contract
@@ -81,12 +81,12 @@ Which phases cover which requirements.
 | STRT-02 | Phase 2 | Complete |
 | STRT-03 | Phase 2 | Complete |
 | STRT-04 | Phase 2 | Complete |
-| MNT-01 | Phase 3 | Pending |
-| MNT-02 | Phase 3 | Pending |
-| MNT-03 | Phase 3 | Pending |
-| TEST-01 | Phase 3 | Pending |
-| TEST-02 | Phase 3 | Pending |
-| TEST-03 | Phase 3 | Pending |
+| MNT-01 | Phase 3 | Complete |
+| MNT-02 | Phase 3 | Complete |
+| MNT-03 | Phase 3 | Complete |
+| TEST-01 | Phase 3 | Complete |
+| TEST-02 | Phase 3 | Complete |
+| TEST-03 | Phase 3 | Complete |
 | TEST-04 | Phase 4 | Pending |
 | DOC-02 | Phase 4 | Pending |
 
@@ -97,4 +97,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after phase 2 completion*
+*Last updated: 2026-02-25 after phase 3 completion*
