@@ -136,6 +136,40 @@ require_non_empty_config_value() {
     exit 1
 }
 
+require_valid_port() {
+    local key="$1"
+    local value="$2"
+
+    if [[ "$value" =~ ^[0-9]+$ ]] && [ "$value" -ge 1 ] && [ "$value" -le 65535 ]; then
+        return
+    fi
+
+    echo "Error: $key must be an integer between 1 and 65535 in $CONFIG_FILE"
+    exit 1
+}
+
+normalize_bool_setting() {
+    local key="$1"
+    local value="$2"
+    local default_value="$3"
+
+    if [ -z "$value" ]; then
+        value="$default_value"
+    fi
+
+    value="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')"
+
+    case "$value" in
+        true|false)
+            printf '%s' "$value"
+            ;;
+        *)
+            echo "Error: $key must be 'true' or 'false' in $CONFIG_FILE"
+            exit 1
+            ;;
+    esac
+}
+
 docker_can_bind_mount_path() {
     local source_path="$1"
 
@@ -237,10 +271,7 @@ load_configuration() {
         REST_API_PUBLISH_PORT="50443"
     fi
 
-    if ! [[ "$REST_API_PUBLISH_PORT" =~ ^[0-9]+$ ]] || [ "$REST_API_PUBLISH_PORT" -lt 1 ] || [ "$REST_API_PUBLISH_PORT" -gt 65535 ]; then
-        echo "Error: REST_API_PUBLISH_PORT must be an integer between 1 and 65535 in $CONFIG_FILE"
-        exit 1
-    fi
+    require_valid_port "REST_API_PUBLISH_PORT" "$REST_API_PUBLISH_PORT"
 
     if [ -z "$REST_API_PUBLISH_BIND" ]; then
         REST_API_PUBLISH_BIND="$REST_API_PUBLISH_BIND_FROM_FILE"
@@ -263,10 +294,7 @@ load_configuration() {
         SERVICE_PORT="50443"
     fi
 
-    if ! [[ "$SERVICE_PORT" =~ ^[0-9]+$ ]] || [ "$SERVICE_PORT" -lt 1 ] || [ "$SERVICE_PORT" -gt 65535 ]; then
-        echo "Error: SERVICE_PORT must be an integer between 1 and 65535 in $CONFIG_FILE"
-        exit 1
-    fi
+    require_valid_port "SERVICE_PORT" "$SERVICE_PORT"
 
     if [ -z "$UPSTREAM_HOST" ]; then
         UPSTREAM_HOST="127.0.0.1"
@@ -276,24 +304,10 @@ load_configuration() {
         UPSTREAM_PORT="50050"
     fi
 
-    if ! [[ "$UPSTREAM_PORT" =~ ^[0-9]+$ ]] || [ "$UPSTREAM_PORT" -lt 1 ] || [ "$UPSTREAM_PORT" -gt 65535 ]; then
-        echo "Error: UPSTREAM_PORT must be an integer between 1 and 65535 in $CONFIG_FILE"
-        exit 1
-    fi
-
-    if [ -z "$HEALTHCHECK_INSECURE" ]; then
-        HEALTHCHECK_INSECURE="true"
-    fi
-
-    HEALTHCHECK_INSECURE="$(printf '%s' "$HEALTHCHECK_INSECURE" | tr '[:upper:]' '[:lower:]')"
-    case "$HEALTHCHECK_INSECURE" in
-        true|false)
-            ;;
-        *)
-            echo "Error: HEALTHCHECK_INSECURE must be 'true' or 'false' in $CONFIG_FILE"
-            exit 1
-            ;;
-    esac
+    require_valid_port "UPSTREAM_PORT" "$UPSTREAM_PORT"
+    HEALTHCHECK_INSECURE="$(normalize_bool_setting "HEALTHCHECK_INSECURE" "$HEALTHCHECK_INSECURE" "true")"
+    TS_USERSPACE="$(normalize_bool_setting "TS_USERSPACE" "$TS_USERSPACE" "false")"
+    USE_TAILSCALE_IP="$(normalize_bool_setting "USE_TAILSCALE_IP" "$USE_TAILSCALE_IP" "false")"
 
     if [ -z "$HEALTHCHECK_URL" ]; then
         HEALTHCHECK_URL="https://127.0.0.1:${SERVICE_PORT}/health"
@@ -308,6 +322,7 @@ load_configuration
 # Never print secret values in startup logs.
 echo "==> Configuration loaded. REST API user: $REST_API_USER, host publish port: $REST_API_PUBLISH_PORT, platform: $DOCKER_PLATFORM"
 echo "==> Startup controls: SERVICE_BIND_HOST=$SERVICE_BIND_HOST SERVICE_PORT=$SERVICE_PORT UPSTREAM_HOST=$UPSTREAM_HOST UPSTREAM_PORT=$UPSTREAM_PORT HEALTHCHECK_INSECURE=$HEALTHCHECK_INSECURE"
+echo "==> Runtime toggles: TS_USERSPACE=$TS_USERSPACE USE_TAILSCALE_IP=$USE_TAILSCALE_IP"
 echo "==> Healthcheck URL: $HEALTHCHECK_URL"
 
 # 2. Build the Docker image.

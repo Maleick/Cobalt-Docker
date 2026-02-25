@@ -36,7 +36,8 @@ The container entrypoint is `docker-entrypoint.sh` and it:
 1. starts `teamserver --experimental-db`,
 2. waits for teamserver TLS readiness,
 3. starts `csrestapi`,
-4. waits for HTTPS readiness before declaring startup healthy.
+4. waits for HTTPS readiness before declaring startup healthy,
+5. exits non-zero with phase-specific cause when startup/monitor branches fail.
 
 Defaults:
 
@@ -46,6 +47,15 @@ Defaults:
 - `SERVICE_PORT=50443`
 - `REST_API_PUBLISH_BIND=127.0.0.1`
 - host publish: `${REST_API_PUBLISH_BIND:-127.0.0.1}:${REST_API_PUBLISH_PORT:-50443}:${SERVICE_PORT}`
+
+Deterministic startup log markers:
+
+- `STARTUP[preflight]`
+- `STARTUP[teamserver-launch]`
+- `STARTUP[teamserver-ready]`
+- `STARTUP[rest-launch]`
+- `STARTUP[rest-ready]`
+- `STARTUP[monitor]`
 
 ## Mount Fallback Contract
 

@@ -31,8 +31,10 @@ If `.env` is missing, or if required keys are empty, the script exits immediatel
 - `TS_AUTHKEY` (Tailscale auth key for joining a Tailnet)
 - `TS_API_KEY` (Tailscale API key for automation)
 - `TS_EXTRA_ARGS` (Extra arguments for `tailscale up`)
-- `TS_USERSPACE` (Set to `true` for macOS or environments without `/dev/net/tun`)
-- `USE_TAILSCALE_IP` (Set to `true` to bind teamserver to the Tailscale IP)
+- `TS_USERSPACE` (default: `false`; must be `true` or `false`)
+- `USE_TAILSCALE_IP` (default: `false`; must be `true` or `false`)
+
+Runtime control validation is strict: malformed port or boolean values fail preflight before Docker build/run.
 
 ### Runtime override environment variables (shell)
 
@@ -158,11 +160,13 @@ HEALTHCHECK_INSECURE="true"
 ### How to verify it is working
 
 ```bash
+REST_API_PORT="${REST_API_PUBLISH_PORT:-50443}"
+
 # service reachable (auth-protected endpoints may return 401/403)
-curl -ksS -o /dev/null -w '%{http_code}\n' https://127.0.0.1:50443/health
+curl -ksS -o /dev/null -w '%{http_code}\n' "https://127.0.0.1:${REST_API_PORT}/health"
 
 # TLS negotiation works
-openssl s_client -connect 127.0.0.1:50443 -servername localhost -brief </dev/null
+openssl s_client -connect "127.0.0.1:${REST_API_PORT}" -servername localhost -brief </dev/null
 ```
 
 ## Tailscale Integration
@@ -207,6 +211,15 @@ On startup, the container entrypoint:
 4. Waits for HTTPS readiness at `HEALTHCHECK_URL` (using `curl`, with `-k` when `HEALTHCHECK_INSECURE=true`), treating HTTP `2xx-4xx` as reachable.
 
 If either process exits unexpectedly, the container exits.
+
+Entrypoint logs deterministic startup phase markers for triage:
+
+- `STARTUP[preflight]`
+- `STARTUP[teamserver-launch]`
+- `STARTUP[teamserver-ready]`
+- `STARTUP[rest-launch]`
+- `STARTUP[rest-ready]`
+- `STARTUP[monitor]`
 
 ## Network and Port Mapping
 
@@ -267,17 +280,19 @@ Treat it as non-fatal only when all three checks pass:
 ### Generic diagnostics checklist
 
 ```bash
+REST_API_PORT="${REST_API_PUBLISH_PORT:-50443}"
+
 # 1) Inspect startup sequence
 docker logs cobaltstrike_server
 
 # 2) TLS-aware HTTP readiness check (self-signed certs)
-curl -ksS -o /dev/null -w '%{http_code}\n' https://127.0.0.1:50443/health
+curl -ksS -o /dev/null -w '%{http_code}\n' "https://127.0.0.1:${REST_API_PORT}/health"
 
 # 3) Verify TLS negotiation directly
-openssl s_client -connect 127.0.0.1:50443 -servername localhost -brief </dev/null
+openssl s_client -connect "127.0.0.1:${REST_API_PORT}" -servername localhost -brief </dev/null
 
 # 4) Confirm listener
-lsof -iTCP:50443 -sTCP:LISTEN
+lsof -iTCP:"${REST_API_PORT}" -sTCP:LISTEN
 
 # 5) Confirm env/port wiring
 docker inspect cobaltstrike_server
@@ -291,6 +306,11 @@ docker inspect cobaltstrike_server
 - `COBALTSTRIKE_LICENSE` is missing/empty
 - `TEAMSERVER_PASSWORD` is missing/empty
 - `REST_API_PUBLISH_PORT` is invalid (not an integer from 1 to 65535)
+- `SERVICE_PORT` is invalid (not an integer from 1 to 65535)
+- `UPSTREAM_PORT` is invalid (not an integer from 1 to 65535)
+- `HEALTHCHECK_INSECURE` is invalid (must be `true` or `false`)
+- `TS_USERSPACE` is invalid (must be `true` or `false`)
+- `USE_TAILSCALE_IP` is invalid (must be `true` or `false`)
 
 ## Notes for Cobalt Strike 4.12
 

@@ -12,10 +12,13 @@ UPSTREAM_HOST="${UPSTREAM_HOST:-127.0.0.1}"
 UPSTREAM_PORT="${UPSTREAM_PORT:-50050}"
 HEALTHCHECK_INSECURE="${HEALTHCHECK_INSECURE:-true}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-https://127.0.0.1:${SERVICE_PORT}/health}"
+TS_USERSPACE="${TS_USERSPACE:-false}"
+USE_TAILSCALE_IP="${USE_TAILSCALE_IP:-false}"
 
 TEAMSERVER_PID=""
 REST_PID=""
 TS_PID=""
+STARTUP_TAG="STARTUP"
 
 cleanup() {
     local exit_code="$?"
@@ -38,9 +41,39 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+log_phase() {
+    local phase="$1"
+    shift
+    printf '%s[%s] %s\n' "$STARTUP_TAG" "$phase" "$*"
+}
+
+fail_phase() {
+    local phase="$1"
+    shift
+    printf '%s[%s] ERROR: %s\n' "$STARTUP_TAG" "$phase" "$*" >&2
+    exit 1
+}
+
 is_valid_port() {
     local port="$1"
     [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ]
+}
+
+normalize_bool_or_fail() {
+    local phase="$1"
+    local key="$2"
+    local value="$3"
+
+    value="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')"
+
+    case "$value" in
+        true|false)
+            printf '%s' "$value"
+            ;;
+        *)
+            fail_phase "$phase" "$key must be 'true' or 'false' (got '$3')."
+            ;;
+    esac
 }
 
 tls_probe_endpoint() {
@@ -74,57 +107,106 @@ http_healthcheck() {
     return 1
 }
 
+wait_for_teamserver_tls_readiness() {
+    local phase="teamserver-ready"
+    local endpoint="$UPSTREAM_HOST:$UPSTREAM_PORT"
+
+    log_phase "$phase" "waiting for TLS readiness on $endpoint (timeout=60s)"
+    for _ in $(seq 1 60); do
+        if ! kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
+            fail_phase "$phase" "teamserver exited before becoming TLS-ready on $endpoint"
+        fi
+
+        if tls_probe_endpoint "$UPSTREAM_HOST" "$UPSTREAM_PORT"; then
+            log_phase "$phase" "TLS readiness confirmed on $endpoint"
+            return
+        fi
+
+        sleep 1
+    done
+
+    fail_phase "$phase" "teamserver did not become TLS-ready on $endpoint within 60s"
+}
+
+wait_for_rest_healthcheck() {
+    local phase="rest-ready"
+
+    log_phase "$phase" "waiting for HTTPS healthcheck at $HEALTHCHECK_URL (insecure=$HEALTHCHECK_INSECURE, timeout=60s)"
+    for _ in $(seq 1 60); do
+        if ! kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
+            fail_phase "$phase" "teamserver exited while waiting for REST API health at $HEALTHCHECK_URL"
+        fi
+
+        if ! kill -0 "$REST_PID" 2>/dev/null; then
+            fail_phase "$phase" "csrestapi exited before becoming healthy at $HEALTHCHECK_URL"
+        fi
+
+        if http_healthcheck "$HEALTHCHECK_URL" "$HEALTHCHECK_INSECURE"; then
+            log_phase "$phase" "REST API healthcheck reachable at $HEALTHCHECK_URL"
+            return
+        fi
+
+        sleep 1
+    done
+
+    fail_phase "$phase" "REST API healthcheck failed at $HEALTHCHECK_URL within 60s"
+}
+
+monitor_runtime_processes() {
+    log_phase "monitor" "startup complete; monitoring teamserver and csrestapi processes"
+    wait -n "$TEAMSERVER_PID" "$REST_PID" || true
+
+    if kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
+        fail_phase "monitor" "csrestapi exited unexpectedly while teamserver is still running"
+    fi
+
+    if kill -0 "$REST_PID" 2>/dev/null; then
+        fail_phase "monitor" "teamserver exited unexpectedly while csrestapi is still running"
+    fi
+
+    fail_phase "monitor" "teamserver and csrestapi exited"
+}
+
+log_phase "preflight" "validating startup inputs"
 if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
-    echo "Usage: $0 <external-ip> <teamserver-password> [malleable-profile]"
-    exit 1
+    fail_phase "preflight" "usage: $0 <external-ip> <teamserver-password> [malleable-profile]"
 fi
 
 if [ ! -x "$TEAMSERVER_BIN" ]; then
-    echo "Error: teamserver binary not found at $TEAMSERVER_BIN"
-    exit 1
+    fail_phase "preflight" "teamserver binary not found at $TEAMSERVER_BIN"
 fi
 
 if [ ! -x "$REST_SERVER_BIN" ]; then
-    echo "Error: csrestapi binary not found at $REST_SERVER_BIN"
-    exit 1
+    fail_phase "preflight" "csrestapi binary not found at $REST_SERVER_BIN"
 fi
 
 if ! is_valid_port "$SERVICE_PORT"; then
-    echo "Error: SERVICE_PORT must be an integer between 1 and 65535 (got '$SERVICE_PORT')."
-    exit 1
+    fail_phase "preflight" "SERVICE_PORT must be an integer between 1 and 65535 (got '$SERVICE_PORT')"
 fi
 
 if ! is_valid_port "$UPSTREAM_PORT"; then
-    echo "Error: UPSTREAM_PORT must be an integer between 1 and 65535 (got '$UPSTREAM_PORT')."
-    exit 1
+    fail_phase "preflight" "UPSTREAM_PORT must be an integer between 1 and 65535 (got '$UPSTREAM_PORT')"
 fi
 
-case "$HEALTHCHECK_INSECURE" in
-    true|false)
-        ;;
-    *)
-        echo "Error: HEALTHCHECK_INSECURE must be 'true' or 'false' (got '$HEALTHCHECK_INSECURE')."
-        exit 1
-        ;;
-esac
+HEALTHCHECK_INSECURE="$(normalize_bool_or_fail "preflight" "HEALTHCHECK_INSECURE" "$HEALTHCHECK_INSECURE")"
+TS_USERSPACE="$(normalize_bool_or_fail "preflight" "TS_USERSPACE" "$TS_USERSPACE")"
+USE_TAILSCALE_IP="$(normalize_bool_or_fail "preflight" "USE_TAILSCALE_IP" "$USE_TAILSCALE_IP")"
 
 TEAMSERVER_HOST="$1"
 TEAMSERVER_PASSWORD="$2"
 TEAMSERVER_PROFILE="${3:-}"
 
-# Tailscale logic
 if [ -n "${TS_AUTHKEY:-}" ]; then
-    echo "==> Starting tailscaled..."
-    # If the user wants to use userspace networking (no /dev/net/tun)
+    log_phase "tailscale" "starting tailscaled"
     TS_TUN_ARGS="--tun=tailscale0"
-    if [ "${TS_USERSPACE:-}" = "true" ]; then
+    if [ "$TS_USERSPACE" = "true" ]; then
         TS_TUN_ARGS="--tun=userspace-networking"
     fi
 
     tailscaled ${TS_TUN_ARGS} --state=mem: --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1055 &
     TS_PID="$!"
 
-    echo "==> Waiting for tailscaled to start..."
+    log_phase "tailscale" "waiting for tailscaled availability"
     for _ in $(seq 1 10); do
         if tailscale status >/dev/null 2>&1; then
             break
@@ -132,16 +214,16 @@ if [ -n "${TS_AUTHKEY:-}" ]; then
         sleep 1
     done
 
-    echo "==> Authenticating to Tailscale..."
+    log_phase "tailscale" "authenticating to tailnet"
     tailscale up --authkey="${TS_AUTHKEY}" ${TS_EXTRA_ARGS:-}
 
-    if [ "${USE_TAILSCALE_IP:-}" = "true" ]; then
-        echo "==> Waiting for Tailscale IP..."
+    if [ "$USE_TAILSCALE_IP" = "true" ]; then
+        log_phase "tailscale" "waiting for tailscale IPv4 address"
         for _ in $(seq 1 30); do
             TS_IP=$(tailscale ip -4)
             if [ -n "$TS_IP" ]; then
                 TEAMSERVER_HOST="$TS_IP"
-                echo "==> Overriding TEAMSERVER_HOST with Tailscale IP: $TEAMSERVER_HOST"
+                log_phase "tailscale" "overriding TEAMSERVER_HOST with tailscale IP $TEAMSERVER_HOST"
                 break
             fi
             sleep 1
@@ -155,30 +237,13 @@ if [ -n "$TEAMSERVER_PROFILE" ]; then
 fi
 TEAMSERVER_CMD+=("--experimental-db")
 
-echo "==> Starting teamserver with --experimental-db..."
+log_phase "teamserver-launch" "starting teamserver with --experimental-db"
 "${TEAMSERVER_CMD[@]}" &
 TEAMSERVER_PID="$!"
 
-echo "==> Waiting for teamserver TLS readiness on $UPSTREAM_HOST:$UPSTREAM_PORT..."
-for _ in $(seq 1 60); do
-    if ! kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
-        echo "Error: teamserver exited before becoming ready."
-        exit 1
-    fi
+wait_for_teamserver_tls_readiness
 
-    if tls_probe_endpoint "$UPSTREAM_HOST" "$UPSTREAM_PORT"; then
-        break
-    fi
-
-    sleep 1
-done
-
-if ! tls_probe_endpoint "$UPSTREAM_HOST" "$UPSTREAM_PORT"; then
-    echo "Error: teamserver did not become TLS-ready on $UPSTREAM_HOST:$UPSTREAM_PORT within timeout."
-    exit 1
-fi
-
-echo "==> Starting csrestapi with user '$REST_API_USER'..."
+log_phase "rest-launch" "starting csrestapi with user '$REST_API_USER'"
 (
     cd "$REST_SERVER_DIR"
     SERVER_ADDRESS="$SERVICE_BIND_HOST" \
@@ -187,42 +252,5 @@ echo "==> Starting csrestapi with user '$REST_API_USER'..."
 ) &
 REST_PID="$!"
 
-echo "==> Waiting for REST API healthcheck: $HEALTHCHECK_URL (insecure=$HEALTHCHECK_INSECURE)"
-for _ in $(seq 1 60); do
-    if ! kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
-        echo "Error: teamserver exited while waiting for REST API health."
-        exit 1
-    fi
-
-    if ! kill -0 "$REST_PID" 2>/dev/null; then
-        echo "Error: csrestapi exited before becoming healthy."
-        exit 1
-    fi
-
-    if http_healthcheck "$HEALTHCHECK_URL" "$HEALTHCHECK_INSECURE"; then
-        break
-    fi
-
-    sleep 1
-done
-
-if ! http_healthcheck "$HEALTHCHECK_URL" "$HEALTHCHECK_INSECURE"; then
-    echo "Error: REST API healthcheck failed: $HEALTHCHECK_URL"
-    exit 1
-fi
-
-echo "==> teamserver and csrestapi are running and healthy."
-wait -n "$TEAMSERVER_PID" "$REST_PID" || true
-
-if kill -0 "$TEAMSERVER_PID" 2>/dev/null; then
-    echo "Error: csrestapi exited unexpectedly."
-    exit 1
-fi
-
-if kill -0 "$REST_PID" 2>/dev/null; then
-    echo "Error: teamserver exited unexpectedly."
-    exit 1
-fi
-
-echo "Error: teamserver or csrestapi exited."
-exit 1
+wait_for_rest_healthcheck
+monitor_runtime_processes
