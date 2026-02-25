@@ -75,9 +75,11 @@ TEAMSERVER_PASSWORD="your-teamserver-password"
 - `Dockerfile`: Builds the Cobalt Strike image and uses a custom entrypoint that starts both teamserver and REST API.
 - `docker-entrypoint.sh`: Starts `teamserver --experimental-db`, waits for readiness, then starts `csrestapi`.
 - `cobalt-docker.sh`: Validates `.env`, builds the image, optional profile linting, and runs the container.
+- `scripts/dyednv-wizard.sh`: Interactive generator for `dyednv.v1` deployment spec files.
 - `AGENTS.md`: Local repository workflow guidance for coding agents.
 - `.env.example`: Template for required and optional runtime configuration.
 - `.gitignore`: Keeps secrets out of git (including `.env`) while allowing `.env.example`.
+- `docs/DYEDNV.md`: DyeDNV schema, validation rules, and example output.
 - `malleable.profile*` (Optional): If present, these profiles will be copied into the Docker image.
 
 ## Usage
@@ -117,6 +119,30 @@ chmod +x cobalt-docker.sh
 # Lint and then run
 ./cobalt-docker.sh custom.profile --lint
 ```
+
+## DyeDNV Wizard
+
+Use the interactive wizard to collect deployment datasets and generate a `dyednv.v1` JSON spec:
+
+```bash
+./scripts/dyednv-wizard.sh
+```
+
+Default output:
+
+```text
+configs/dyednv/<name>.dyednv.json
+```
+
+Wizard behavior:
+
+- Collects grouped datasets in order: metadata, teamserver/profile metadata, runtime, REST API, tailscale, and secret references.
+- Uses defaults from `.env` when available, otherwise `.env.example`.
+- Re-prompts until typed values are valid (ports, booleans, secret-ref format).
+- Stores secret references only (`scheme://value`) and rejects raw-secret-like values.
+- Writes no runtime state and does not modify `.env` or run deployment.
+
+See full format details in [docs/DYEDNV.md](./docs/DYEDNV.md).
 
 ## REST API Integration
 

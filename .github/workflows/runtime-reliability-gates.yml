@@ -31,6 +31,9 @@ jobs:
       - name: Validate entrypoint syntax
         run: bash -n docker-entrypoint.sh
 
+      - name: Validate DyeDNV wizard syntax
+        run: bash -n scripts/dyednv-wizard.sh
+
   shell-regression-suite:
     name: shell-regression-suite
     runs-on: ubuntu-latest
