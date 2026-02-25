@@ -37,12 +37,12 @@ Requirements for the current hardening milestone. Each requirement maps to exact
 - [x] **TEST-01**: Automated shell tests cover preflight validation branches.
 - [x] **TEST-02**: Automated shell tests cover mount-mode decision branches.
 - [x] **TEST-03**: Automated shell tests cover startup sequencing and readiness branch behavior.
-- [ ] **TEST-04**: CI executes syntax/static checks and shell regression tests on pull requests.
+- [x] **TEST-04**: CI executes syntax/static checks and shell regression tests on pull requests.
 
 ### Documentation Contract
 
 - [x] **DOC-01**: `README.md` and `AGENTS.md` stay aligned with launcher/entrypoint behavior changes.
-- [ ] **DOC-02**: Troubleshooting guidance covers expected startup, mount fallback, and health verification flows.
+- [x] **DOC-02**: Troubleshooting guidance covers expected startup, mount fallback, and health verification flows.
 
 ## v2 Requirements
 
@@ -87,8 +87,8 @@ Which phases cover which requirements.
 | TEST-01 | Phase 3 | Complete |
 | TEST-02 | Phase 3 | Complete |
 | TEST-03 | Phase 3 | Complete |
-| TEST-04 | Phase 4 | Pending |
-| DOC-02 | Phase 4 | Pending |
+| TEST-04 | Phase 4 | Complete |
+| DOC-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total
@@ -97,4 +97,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after phase 3 completion*
+*Last updated: 2026-02-25 after phase 4 completion*

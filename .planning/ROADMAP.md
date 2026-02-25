@@ -13,7 +13,7 @@ This roadmap hardens an existing deployment baseline in four phases: contract/se
 - [x] **Phase 1: Contract and Security Baseline** - Lock required contracts and secret-safe defaults (completed 2026-02-25)
 - [x] **Phase 2: Startup Determinism and Diagnostics** - Make startup behavior consistently verifiable (completed 2026-02-25)
 - [x] **Phase 3: Mount/Platform Resilience with Regression Tests** - Stabilize environment variance and test critical branches (completed 2026-02-25)
-- [ ] **Phase 4: CI Enforcement and Operator Runbook** - Enforce checks continuously and finalize troubleshooting guidance
+- [x] **Phase 4: CI Enforcement and Operator Runbook** - Enforce checks continuously and finalize troubleshooting guidance (completed 2026-02-25)
 
 ## Phase Details
 
@@ -73,11 +73,11 @@ Plans:
   1. Pull requests run syntax/static checks and shell regression tests in CI.
   2. Operator troubleshooting guidance covers startup, mount fallback, and health diagnostics end-to-end.
   3. Contributors can validate behavior quickly using documented commands.
-**Plans**: 2 plans
+**Plans**: 2/2 plans complete
 
 Plans:
-- [ ] 04-01: Wire CI gates for shell/runtime contract checks
-- [ ] 04-02: Finalize operator troubleshooting and verification docs
+- [x] 04-01: Wire CI gates for shell/runtime contract checks
+- [x] 04-02: Finalize operator troubleshooting and verification docs
 
 ## Progress
 
@@ -89,4 +89,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Contract and Security Baseline | 3/3 | Complete    | 2026-02-25 |
 | 2. Startup Determinism and Diagnostics | 3/3 | Complete    | 2026-02-25 |
 | 3. Mount/Platform Resilience with Regression Tests | 3/3 | Complete    | 2026-02-25 |
-| 4. CI Enforcement and Operator Runbook | 0/2 | Not started | - |
+| 4. CI Enforcement and Operator Runbook | 2/2 | Complete    | 2026-02-25 |
