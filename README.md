@@ -2,6 +2,16 @@
 
 This project builds and runs a Cobalt Strike team server in Docker. It supports Cobalt Strike **4.12** and now starts the REST API (`csrestapi`) automatically alongside teamserver.
 
+## Current Repository State (v1.1)
+
+Runtime hardening and governance documentation are both in place:
+
+- Runtime and operator docs are covered in this README and [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md).
+- Branch protection governance is documented in:
+  - [.planning/milestones/v1.1-branch-protection-policy.md](./.planning/milestones/v1.1-branch-protection-policy.md)
+  - [.planning/milestones/v1.1-governance-verification-procedure.md](./.planning/milestones/v1.1-governance-verification-procedure.md)
+  - [.planning/milestones/v1.1-governance-exception-workflow.md](./.planning/milestones/v1.1-governance-exception-workflow.md)
+
 ## Prerequisites
 
 - [Docker](https://www.docker.com/get-started)
@@ -125,6 +135,11 @@ the launcher builds/runs the container and the entrypoint automatically starts b
 
 No extra startup flag is required for standard REST API deployment.
 
+### REST API vs MCP
+
+- This repository deploys and verifies the native Cobalt Strike REST API surface.
+- You can build separate MCP tooling on top of the REST API, but MCP is not part of the default runtime path in this project.
+
 ### What is required
 
 - `.env` must already contain:
@@ -198,6 +213,12 @@ TS_EXTRA_ARGS="--hostname=cobalt-docker"
 - **Secure Access**: Connect to your teamserver over a private Tailscale network without exposing ports to the public internet.
 - **Stable IP**: Using `USE_TAILSCALE_IP="true"` ensures the teamserver binds to the stable Tailscale IP, simplifying beacon callback configuration.
 - **Ephemeral Nodes**: Use ephemeral auth keys to ensure the container is automatically removed from your Tailnet when it stops.
+
+### Local-Only Deployment Note
+
+If local deployment should not depend on Tailnet authentication, leave `TS_AUTHKEY` empty in `.env`.
+
+If `TS_AUTHKEY` is set to an invalid key, startup stops during Tailscale authentication before normal runtime monitoring.
 
 ## Runtime Behavior
 
@@ -343,6 +364,14 @@ Coverage includes:
 Use the dedicated runbook for startup, mount fallback, health checks, and CI failure triage:
 
 - [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+
+## Governance Checks (GitHub)
+
+For protected branches (`master`, `release/**`), the required status checks are:
+
+- `runtime-reliability / syntax-checks`
+- `runtime-reliability / shell-regression-suite`
+- `runtime-reliability / secret-scan`
 
 ## Notes for Cobalt Strike 4.12
 
