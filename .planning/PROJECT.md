@@ -17,12 +17,20 @@ A licensed operator can start the stack safely and predictably with one command,
 - **Quality contract:** shell regression suite for preflight/mount/startup behavior and PR CI enforcement workflow
 - **Operator docs:** canonical troubleshooting guidance in `docs/TROUBLESHOOTING.md`
 
-## Next Milestone Goals
+## Current Milestone: v1.1 Branch Protection Governance
 
-- [ ] Decide and implement branch-protection strategy for required CI checks (policy/governance layer)
-- [ ] Expand CI reliability depth (for example optional `shellcheck` and/or multi-OS validation)
-- [ ] Add targeted operational hardening docs for post-start lifecycle tasks
-- [ ] Continue reducing ambiguity in contributor workflows and verification evidence capture
+**Goal:** Define and operationalize protected-branch and required-check governance so repository policy enforcement is explicit, auditable, and reproducible.
+
+**Target features:**
+- Branch protection policy contract for `master` and `release/**`
+- Required-check contract aligned to runtime reliability workflow checks
+- Governance verification and exception/recovery procedure
+
+## Next Milestone Goals (Deferred to v1.2)
+
+- [ ] Expand CI reliability depth (optional `shellcheck` policy and/or multi-OS validation)
+- [ ] Add post-start operational hardening documentation beyond Phase 4 runbook scope
+- [ ] Improve contributor evidence-capture flow for policy compliance and audit trails
 
 ## Requirements
 
@@ -37,27 +45,28 @@ A licensed operator can start the stack safely and predictably with one command,
 
 ### Active
 
-- [ ] Define post-v1.0 requirement set for next milestone
-- [ ] Expand CI policy from in-repo workflow enforcement to organization/repo protection configuration
-- [ ] Assess additional static/runtime verification depth against maintenance cost
+- [ ] Define branch protection contract for protected targets and required checks
+- [ ] Document governance rules for approvals, stale review behavior, and conversation resolution
+- [ ] Define least-privilege policy for direct-push and force-push exceptions
+- [ ] Create reproducible governance verification and emergency reconciliation procedure
 
 ### Out of Scope
 
 - Unauthorized, malicious, or non-licensed Cobalt Strike usage flows
 - Replacing Cobalt Strike binaries/services with custom control-plane components
-- Unrelated product expansion outside deployment/runtime reliability objectives
+- Runtime feature expansion not needed for governance policy milestone
 
 ## Context
 
-The v1.0 milestone completed all planned phases and requirements with a full planning/verification trail under `.planning/`. The codebase now has both operational guardrails and CI enforcement for core runtime behaviors. The immediate next step is opening a new milestone with explicit goals rather than extending v1 scope ad hoc.
+v1.0 delivered runtime reliability and CI check implementation in-repo; the remaining gap is governance policy enforcement at repository settings/protected-branch level. This milestone intentionally constrains scope to policy contracts and verification procedures, while deferring broader CI depth and additional ops documentation to v1.2.
 
 ## Constraints
 
-- **Security:** never expose secret values in code, docs, logs, or planning artifacts.
-- **Compatibility:** preserve canonical launcher workflow unless explicitly versioned.
-- **Platform:** maintain Linux/macOS viability across Docker host variability.
-- **Documentation:** update README/AGENTS/runbook with behavior changes in the same change set.
-- **Scope discipline:** each new capability should enter through milestone requirements and roadmap phases.
+- **Security**: Never expose secret values in code, docs, logs, or planning artifacts.
+- **Compatibility**: Preserve canonical launcher workflow unless explicitly versioned.
+- **Platform**: Maintain Linux/macOS viability across Docker host variability.
+- **Documentation**: Update README/AGENTS/runbook with behavior changes in the same change set.
+- **Scope discipline**: v1.1 covers governance policy only; deferred improvements stay out of milestone scope.
 
 ## Key Decisions
 
@@ -70,6 +79,8 @@ The v1.0 milestone completed all planned phases and requirements with a full pla
 | Use shell regression specs as baseline contract safety net | Provide dependency-light reproducible verification | ✓ Good |
 | Enforce runtime reliability checks in dedicated PR workflow | Make contract verification continuous and fork-safe | ✓ Good |
 | Keep troubleshooting canonical in `docs/TROUBLESHOOTING.md` | Ensure one source of truth for operator/contributor triage | ✓ Good |
+| Split v1.1 and v1.2 scope | Keep governance policy decisions isolated from broader operational expansion | ✓ Good |
+| Set v1.1 to branch protection governance only | Lock immediate milestone intent and avoid mixed-scope roadmap drift | ✓ Good |
 
 ---
-*Last updated: 2026-02-25 after v1.0 milestone completion*
+*Last updated: 2026-02-25 after v1.1 milestone start*
