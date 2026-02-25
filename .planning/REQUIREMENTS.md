@@ -66,35 +66,35 @@ Explicit exclusions for this milestone.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONF-01 | TBD | Pending |
-| CONF-02 | TBD | Pending |
-| CONF-03 | TBD | Pending |
-| STRT-01 | TBD | Pending |
-| STRT-02 | TBD | Pending |
-| STRT-03 | TBD | Pending |
-| STRT-04 | TBD | Pending |
-| MNT-01 | TBD | Pending |
-| MNT-02 | TBD | Pending |
-| MNT-03 | TBD | Pending |
-| SEC-01 | TBD | Pending |
-| SEC-02 | TBD | Pending |
-| SEC-03 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
-| DOC-01 | TBD | Pending |
-| DOC-02 | TBD | Pending |
+| CONF-01 | Phase 1 | Pending |
+| CONF-02 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Pending |
+| SEC-02 | Phase 1 | Pending |
+| SEC-03 | Phase 1 | Pending |
+| DOC-01 | Phase 1 | Pending |
+| CONF-03 | Phase 2 | Pending |
+| STRT-01 | Phase 2 | Pending |
+| STRT-02 | Phase 2 | Pending |
+| STRT-03 | Phase 2 | Pending |
+| STRT-04 | Phase 2 | Pending |
+| MNT-01 | Phase 3 | Pending |
+| MNT-02 | Phase 3 | Pending |
+| MNT-03 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Pending |
+| TEST-02 | Phase 3 | Pending |
+| TEST-03 | Phase 3 | Pending |
+| TEST-04 | Phase 4 | Pending |
+| DOC-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after initial definition*
+*Last updated: 2026-02-25 after roadmap mapping*
