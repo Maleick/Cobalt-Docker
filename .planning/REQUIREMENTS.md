@@ -11,14 +11,14 @@ Requirements for the current hardening milestone. Each requirement maps to exact
 
 - [x] **CONF-01**: Operator can initialize `.env` from a maintained template that includes all required runtime keys.
 - [x] **CONF-02**: Launcher rejects missing/empty required keys (`COBALTSTRIKE_LICENSE`, `TEAMSERVER_PASSWORD`) with explicit remediation output.
-- [ ] **CONF-03**: Launcher validates runtime port and boolean controls and exits with actionable error messages for invalid values.
+- [x] **CONF-03**: Launcher validates runtime port and boolean controls and exits with actionable error messages for invalid values.
 
 ### Startup & Health Contracts
 
-- [ ] **STRT-01**: Entrypoint starts teamserver first and only starts `csrestapi` after teamserver TLS readiness succeeds.
-- [ ] **STRT-02**: Entrypoint exits non-zero when teamserver or `csrestapi` exits unexpectedly during startup.
-- [ ] **STRT-03**: Healthy startup can be verified using documented TLS and HTTP health commands.
-- [ ] **STRT-04**: Startup logs expose clear phase markers and failure causes for fast operator diagnosis.
+- [x] **STRT-01**: Entrypoint starts teamserver first and only starts `csrestapi` after teamserver TLS readiness succeeds.
+- [x] **STRT-02**: Entrypoint exits non-zero when teamserver or `csrestapi` exits unexpectedly during startup.
+- [x] **STRT-03**: Healthy startup can be verified using documented TLS and HTTP health commands.
+- [x] **STRT-04**: Startup logs expose clear phase markers and failure causes for fast operator diagnosis.
 
 ### Mount & Platform Resilience
 
@@ -76,11 +76,11 @@ Which phases cover which requirements.
 | SEC-02 | Phase 1 | Complete |
 | SEC-03 | Phase 1 | Complete |
 | DOC-01 | Phase 1 | Complete |
-| CONF-03 | Phase 2 | Pending |
-| STRT-01 | Phase 2 | Pending |
-| STRT-02 | Phase 2 | Pending |
-| STRT-03 | Phase 2 | Pending |
-| STRT-04 | Phase 2 | Pending |
+| CONF-03 | Phase 2 | Complete |
+| STRT-01 | Phase 2 | Complete |
+| STRT-02 | Phase 2 | Complete |
+| STRT-03 | Phase 2 | Complete |
+| STRT-04 | Phase 2 | Complete |
 | MNT-01 | Phase 3 | Pending |
 | MNT-02 | Phase 3 | Pending |
 | MNT-03 | Phase 3 | Pending |
@@ -97,4 +97,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after phase 1 completion*
+*Last updated: 2026-02-25 after phase 2 completion*

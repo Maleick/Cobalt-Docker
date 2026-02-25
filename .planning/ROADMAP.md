@@ -11,7 +11,7 @@ This roadmap hardens an existing deployment baseline in four phases: contract/se
 - Decimal phases (2.1, 2.2): urgent insertions if needed
 
 - [x] **Phase 1: Contract and Security Baseline** - Lock required contracts and secret-safe defaults (completed 2026-02-25)
-- [ ] **Phase 2: Startup Determinism and Diagnostics** - Make startup behavior consistently verifiable
+- [x] **Phase 2: Startup Determinism and Diagnostics** - Make startup behavior consistently verifiable (completed 2026-02-25)
 - [ ] **Phase 3: Mount/Platform Resilience with Regression Tests** - Stabilize environment variance and test critical branches
 - [ ] **Phase 4: CI Enforcement and Operator Runbook** - Enforce checks continuously and finalize troubleshooting guidance
 
@@ -42,12 +42,12 @@ Plans:
   2. Unexpected process exits during startup produce non-zero exit and clear cause.
   3. Health verification commands from docs reliably confirm healthy state.
   4. Startup logs include consistent phase markers for quick diagnosis.
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 Plans:
-- [ ] 02-01: Harden startup validation and failure semantics
-- [ ] 02-02: Strengthen readiness/liveness probes and branch behavior
-- [ ] 02-03: Improve startup diagnostic output and verification guidance
+- [x] 02-01: Harden startup validation and failure semantics
+- [x] 02-02: Strengthen readiness/liveness probes and branch behavior
+- [x] 02-03: Improve startup diagnostic output and verification guidance
 
 ### Phase 3: Mount/Platform Resilience with Regression Tests
 **Goal**: Make mount/platform behavior reliable and codify critical runtime branches in automated tests.
@@ -87,6 +87,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Contract and Security Baseline | 3/3 | Complete    | 2026-02-25 |
-| 2. Startup Determinism and Diagnostics | 0/3 | Not started | - |
+| 2. Startup Determinism and Diagnostics | 3/3 | Complete    | 2026-02-25 |
 | 3. Mount/Platform Resilience with Regression Tests | 0/3 | Not started | - |
 | 4. CI Enforcement and Operator Runbook | 0/2 | Not started | - |
