@@ -15,12 +15,12 @@ Requirements for milestone v1.1. Each requirement maps to exactly one roadmap ph
   - `runtime-reliability / shell-regression-suite`
   - `runtime-reliability / secret-scan`
 - [x] **GOV-03**: PR review governance rules are documented, including approval threshold, stale review handling, and required conversation resolution.
-- [ ] **GOV-04**: Direct-push and force-push exception policy is defined with least-privilege scope.
+- [x] **GOV-04**: Direct-push and force-push exception policy is defined with least-privilege scope.
 
 ### Verification & Audit
 
-- [ ] **AUD-01**: A reproducible verification procedure (CLI and UI path) is documented to confirm effective protection settings.
-- [ ] **AUD-02**: An emergency exception workflow is documented with post-incident reconciliation checklist and ownership.
+- [x] **AUD-01**: A reproducible verification procedure (CLI and UI path) is documented to confirm effective protection settings.
+- [x] **AUD-02**: An emergency exception workflow is documented with post-incident reconciliation checklist and ownership.
 
 ## v1.2 Deferred Requirements
 
@@ -51,9 +51,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GOV-01 | Phase 5 | Complete |
 | GOV-02 | Phase 5 | Complete |
 | GOV-03 | Phase 5 | Complete |
-| GOV-04 | Phase 6 | Pending |
-| AUD-01 | Phase 6 | Pending |
-| AUD-02 | Phase 6 | Pending |
+| GOV-04 | Phase 6 | Complete |
+| AUD-01 | Phase 6 | Complete |
+| AUD-02 | Phase 6 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 6 total

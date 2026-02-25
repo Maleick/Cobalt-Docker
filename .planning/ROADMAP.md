@@ -36,11 +36,11 @@ Plans:
   1. Direct-push/force-push exception policy is least-privilege and explicit.
   2. Verification procedure can confirm settings through CLI/UI paths.
   3. Emergency exception workflow includes reconciliation ownership and closeout checks.
-**Plans**: 2 plans
+**Plans**: 2/2 plans complete
 
 Plans:
-- [ ] 06-01: Define governance verification procedure and audit commands
-- [ ] 06-02: Define exception and recovery workflow with reconciliation checklist
+- [x] 06-01: Define governance verification procedure and audit commands (completed 2026-02-25)
+- [x] 06-02: Define exception and recovery workflow with reconciliation checklist (completed 2026-02-25)
 
 ## Progress
 
@@ -50,4 +50,4 @@ Phases execute in numeric order: 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 5. Branch Protection Policy Contract | 2/2 | Complete    | 2026-02-25 |
-| 6. Governance Verification & Exceptions | 0/2 | Not started | - |
+| 6. Governance Verification & Exceptions | 2/2 | Complete    | 2026-02-25 |
