@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: branch-protection-governance
-status: in_progress
-last_updated: "2026-02-25T21:13:36Z"
+milestone_name: Branch Protection Governance
+status: complete
+last_updated: "2026-02-25T21:17:53Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** A licensed operator can start the stack safely and predictably with one command, and failures are explicit, diagnosable, and recoverable.
-**Current focus:** Milestone v1.1 closure
+**Current focus:** Milestone v1.1 complete
 
 ## Current Position
 
 Phase: 6 of 6 (v1.1 phases)
-Plan: Milestone closure
-Status: Phase 6 complete; ready to complete milestone v1.1
-Last activity: 2026-02-25 - Phase 6 verification passed and tracking closed
+Plan: Milestone archived
+Status: Milestone v1.1 completed and archived
+Last activity: 2026-02-25 - Milestone archive records created (`v1.1-ROADMAP.md`, `v1.1-REQUIREMENTS.md`)
 
 Progress: [██████████] 100%
 
@@ -58,7 +58,7 @@ Progress: [██████████] 100%
 
 ### Pending Todos
 
-- Run `$gsd-complete-milestone v1.1` to archive milestone artifacts and prepare next cycle.
+- Start next cycle with `$gsd-new-milestone --auto`.
 
 ### Blockers/Concerns
 
@@ -66,6 +66,6 @@ Progress: [██████████] 100%
 
 ## Session Continuity
 
-Last session: 2026-02-25 21:13 UTC
-Stopped at: Phase 6 complete; milestone closure pending
-Resume file: .planning/ROADMAP.md
+Last session: 2026-02-25 21:17 UTC
+Stopped at: Milestone v1.1 archived
+Resume file: .planning/MILESTONES.md

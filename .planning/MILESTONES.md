@@ -24,3 +24,13 @@
 **What's next:** Start a new milestone and define post-v1.0 goals (`$gsd-new-milestone --auto`).
 
 ---
+
+## v1.1 Branch Protection Governance (Shipped: 2026-02-25)
+
+**Phases completed:** 6 phases, 15 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
