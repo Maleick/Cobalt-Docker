@@ -10,7 +10,7 @@ This roadmap hardens an existing deployment baseline in four phases: contract/se
 - Integer phases (1, 2, 3): planned milestone work
 - Decimal phases (2.1, 2.2): urgent insertions if needed
 
-- [ ] **Phase 1: Contract and Security Baseline** - Lock required contracts and secret-safe defaults
+- [x] **Phase 1: Contract and Security Baseline** - Lock required contracts and secret-safe defaults (completed 2026-02-25)
 - [ ] **Phase 2: Startup Determinism and Diagnostics** - Make startup behavior consistently verifiable
 - [ ] **Phase 3: Mount/Platform Resilience with Regression Tests** - Stabilize environment variance and test critical branches
 - [ ] **Phase 4: CI Enforcement and Operator Runbook** - Enforce checks continuously and finalize troubleshooting guidance
@@ -26,12 +26,12 @@ This roadmap hardens an existing deployment baseline in four phases: contract/se
   2. Runtime and generated docs avoid secret value leakage and pass secret-pattern scans.
   3. REST API exposure defaults remain localhost-scoped unless explicitly overridden.
   4. README/AGENTS contract updates are tied to behavior changes.
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 Plans:
-- [ ] 01-01: Validate and normalize configuration/security contract boundaries
-- [ ] 01-02: Implement secret-safe output and scanning guardrails
-- [ ] 01-03: Align runtime defaults and contract documentation
+- [x] 01-01: Validate and normalize configuration/security contract boundaries
+- [x] 01-02: Implement secret-safe output and scanning guardrails
+- [x] 01-03: Align runtime defaults and contract documentation
 
 ### Phase 2: Startup Determinism and Diagnostics
 **Goal**: Ensure startup order, readiness checks, and failure handling are deterministic and operator-actionable.
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Contract and Security Baseline | 0/3 | Not started | - |
+| 1. Contract and Security Baseline | 3/3 | Complete    | 2026-02-25 |
 | 2. Startup Determinism and Diagnostics | 0/3 | Not started | - |
 | 3. Mount/Platform Resilience with Regression Tests | 0/3 | Not started | - |
 | 4. CI Enforcement and Operator Runbook | 0/2 | Not started | - |

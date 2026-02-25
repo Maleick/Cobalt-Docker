@@ -9,8 +9,8 @@ Requirements for the current hardening milestone. Each requirement maps to exact
 
 ### Configuration & Preflight
 
-- [ ] **CONF-01**: Operator can initialize `.env` from a maintained template that includes all required runtime keys.
-- [ ] **CONF-02**: Launcher rejects missing/empty required keys (`COBALTSTRIKE_LICENSE`, `TEAMSERVER_PASSWORD`) with explicit remediation output.
+- [x] **CONF-01**: Operator can initialize `.env` from a maintained template that includes all required runtime keys.
+- [x] **CONF-02**: Launcher rejects missing/empty required keys (`COBALTSTRIKE_LICENSE`, `TEAMSERVER_PASSWORD`) with explicit remediation output.
 - [ ] **CONF-03**: Launcher validates runtime port and boolean controls and exits with actionable error messages for invalid values.
 
 ### Startup & Health Contracts
@@ -28,9 +28,9 @@ Requirements for the current hardening milestone. Each requirement maps to exact
 
 ### Security & Exposure
 
-- [ ] **SEC-01**: Scripts and generated docs avoid printing or storing secret values.
-- [ ] **SEC-02**: REST API host publish remains localhost-scoped by default unless operator explicitly overrides.
-- [ ] **SEC-03**: Planning/docs artifacts pass secret-pattern scans before commit.
+- [x] **SEC-01**: Scripts and generated docs avoid printing or storing secret values.
+- [x] **SEC-02**: REST API host publish remains localhost-scoped by default unless operator explicitly overrides.
+- [x] **SEC-03**: Planning/docs artifacts pass secret-pattern scans before commit.
 
 ### Testing & CI
 
@@ -41,7 +41,7 @@ Requirements for the current hardening milestone. Each requirement maps to exact
 
 ### Documentation Contract
 
-- [ ] **DOC-01**: `README.md` and `AGENTS.md` stay aligned with launcher/entrypoint behavior changes.
+- [x] **DOC-01**: `README.md` and `AGENTS.md` stay aligned with launcher/entrypoint behavior changes.
 - [ ] **DOC-02**: Troubleshooting guidance covers expected startup, mount fallback, and health verification flows.
 
 ## v2 Requirements
@@ -70,12 +70,12 @@ Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONF-01 | Phase 1 | Pending |
-| CONF-02 | Phase 1 | Pending |
-| SEC-01 | Phase 1 | Pending |
-| SEC-02 | Phase 1 | Pending |
-| SEC-03 | Phase 1 | Pending |
-| DOC-01 | Phase 1 | Pending |
+| CONF-01 | Phase 1 | Complete |
+| CONF-02 | Phase 1 | Complete |
+| SEC-01 | Phase 1 | Complete |
+| SEC-02 | Phase 1 | Complete |
+| SEC-03 | Phase 1 | Complete |
+| DOC-01 | Phase 1 | Complete |
 | CONF-03 | Phase 2 | Pending |
 | STRT-01 | Phase 2 | Pending |
 | STRT-02 | Phase 2 | Pending |
@@ -97,4 +97,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after roadmap mapping*
+*Last updated: 2026-02-25 after phase 1 completion*
