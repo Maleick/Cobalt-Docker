@@ -79,6 +79,15 @@ Run shell checks after script edits:
 - `bash -n /opt/Cobalt-Docker/cobalt-docker.sh`
 - `bash -n /opt/Cobalt-Docker/docker-entrypoint.sh`
 - `./tests/run-shell-tests.sh`
+- `./scripts/scan-secrets.sh /opt/Cobalt-Docker`
+
+## Troubleshooting Runbook
+
+Canonical troubleshooting guidance lives in:
+
+- `docs/TROUBLESHOOTING.md`
+
+When runtime or CI reliability behavior changes, update the runbook in the same change.
 
 ## Secret Hygiene
 
@@ -88,9 +97,10 @@ Before committing docs/planning artifacts, run secret-pattern checks:
 
 ## Documentation Rule
 
-When behavior changes, update `README.md` in the same change with:
+When behavior changes, update docs in the same change:
 
 - preflight requirements,
 - auto-deploy behavior,
 - optional flags/overrides,
 - verification commands.
+- troubleshooting/runbook guidance (`docs/TROUBLESHOOTING.md` + README pointer).

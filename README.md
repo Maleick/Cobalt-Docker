@@ -338,6 +338,12 @@ Coverage includes:
 - mount mode/profile source branches (`TEST-02`)
 - startup sequencing/readiness branches (`TEST-03`)
 
+## Troubleshooting Runbook
+
+Use the dedicated runbook for startup, mount fallback, health checks, and CI failure triage:
+
+- [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+
 ## Notes for Cobalt Strike 4.12
 
 - This repository has been validated with Cobalt Strike 4.12.

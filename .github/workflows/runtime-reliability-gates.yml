@@ -1,0 +1,52 @@
+name: runtime-reliability
+
+on:
+  pull_request:
+    branches:
+      - master
+      - release/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  syntax-checks:
+    name: syntax-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate launcher syntax
+        run: bash -n cobalt-docker.sh
+
+      - name: Validate entrypoint syntax
+        run: bash -n docker-entrypoint.sh
+
+  shell-regression-suite:
+    name: shell-regression-suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run shell regression suite
+        run: ./tests/run-shell-tests.sh
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run docs and planning secret scan
+        run: ./scripts/scan-secrets.sh .
