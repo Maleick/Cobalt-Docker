@@ -36,6 +36,7 @@ DO_LINT=false
 LINT_ONLY=false
 REST_API_USER=""
 REST_API_PUBLISH_PORT=""
+REST_API_PUBLISH_BIND="${REST_API_PUBLISH_BIND:-}"
 SERVICE_BIND_HOST=""
 SERVICE_PORT=""
 UPSTREAM_HOST=""
@@ -122,6 +123,19 @@ warn() {
     printf 'Warning: %s\n' "$*" >&2
 }
 
+require_non_empty_config_value() {
+    local key="$1"
+    local value="$2"
+
+    if [ -n "$value" ]; then
+        return
+    fi
+
+    echo "Error: $key is missing or empty in $CONFIG_FILE"
+    echo "Set $key in $CONFIG_FILE and re-run ./cobalt-docker.sh"
+    exit 1
+}
+
 docker_can_bind_mount_path() {
     local source_path="$1"
 
@@ -199,6 +213,7 @@ load_configuration() {
     TEAMSERVER_PASSWORD="$(get_env_value "TEAMSERVER_PASSWORD" || true)"
     REST_API_USER="$(get_env_value "REST_API_USER" || true)"
     REST_API_PUBLISH_PORT="$(get_env_value "REST_API_PUBLISH_PORT" || true)"
+    REST_API_PUBLISH_BIND_FROM_FILE="$(get_env_value "REST_API_PUBLISH_BIND" || true)"
     SERVICE_BIND_HOST="$(get_env_value "SERVICE_BIND_HOST" || true)"
     SERVICE_PORT="$(get_env_value "SERVICE_PORT" || true)"
     UPSTREAM_HOST="$(get_env_value "UPSTREAM_HOST" || true)"
@@ -211,15 +226,8 @@ load_configuration() {
     TS_USERSPACE="$(get_env_value "TS_USERSPACE" || true)"
     USE_TAILSCALE_IP="$(get_env_value "USE_TAILSCALE_IP" || true)"
 
-    if [ -z "$COBALTSTRIKE_LICENSE" ]; then
-        echo "Error: COBALTSTRIKE_LICENSE is missing or empty in $CONFIG_FILE"
-        exit 1
-    fi
-
-    if [ -z "$TEAMSERVER_PASSWORD" ]; then
-        echo "Error: TEAMSERVER_PASSWORD is missing or empty in $CONFIG_FILE"
-        exit 1
-    fi
+    require_non_empty_config_value "COBALTSTRIKE_LICENSE" "$COBALTSTRIKE_LICENSE"
+    require_non_empty_config_value "TEAMSERVER_PASSWORD" "$TEAMSERVER_PASSWORD"
 
     if [ -z "$REST_API_USER" ]; then
         REST_API_USER="csrestapi"
@@ -231,6 +239,19 @@ load_configuration() {
 
     if ! [[ "$REST_API_PUBLISH_PORT" =~ ^[0-9]+$ ]] || [ "$REST_API_PUBLISH_PORT" -lt 1 ] || [ "$REST_API_PUBLISH_PORT" -gt 65535 ]; then
         echo "Error: REST_API_PUBLISH_PORT must be an integer between 1 and 65535 in $CONFIG_FILE"
+        exit 1
+    fi
+
+    if [ -z "$REST_API_PUBLISH_BIND" ]; then
+        REST_API_PUBLISH_BIND="$REST_API_PUBLISH_BIND_FROM_FILE"
+    fi
+
+    if [ -z "$REST_API_PUBLISH_BIND" ]; then
+        REST_API_PUBLISH_BIND="127.0.0.1"
+    fi
+
+    if [[ "$REST_API_PUBLISH_BIND" =~ [[:space:]] ]]; then
+        echo "Error: REST_API_PUBLISH_BIND must not contain whitespace"
         exit 1
     fi
 
@@ -284,6 +305,7 @@ load_configuration() {
 # 1. Load configuration (required preflight).
 echo "==> Loading configuration from $CONFIG_FILE..."
 load_configuration
+# Never print secret values in startup logs.
 echo "==> Configuration loaded. REST API user: $REST_API_USER, host publish port: $REST_API_PUBLISH_PORT, platform: $DOCKER_PLATFORM"
 echo "==> Startup controls: SERVICE_BIND_HOST=$SERVICE_BIND_HOST SERVICE_PORT=$SERVICE_PORT UPSTREAM_HOST=$UPSTREAM_HOST UPSTREAM_PORT=$UPSTREAM_PORT HEALTHCHECK_INSECURE=$HEALTHCHECK_INSECURE"
 echo "==> Healthcheck URL: $HEALTHCHECK_URL"
@@ -330,7 +352,7 @@ if [ -z "$IPADDRESS" ]; then
 fi
 
 echo "==> Detected Host IP: $IPADDRESS"
-echo "==> REST API will be published at: https://127.0.0.1:$REST_API_PUBLISH_PORT"
+echo "==> REST API will be published at: https://$REST_API_PUBLISH_BIND:$REST_API_PUBLISH_PORT"
 
 # 7. Conditionally add TUN device if present and Tailscale is enabled.
 TUN_DEVICE_ARGS=()
@@ -366,7 +388,7 @@ docker run --name "$DOCKER_CONTAINER_NAME" \
   -p 80:80 \
   -p 443:443 \
   -p 53:53/udp \
-  -p "127.0.0.1:$REST_API_PUBLISH_PORT:$SERVICE_PORT" \
+  -p "$REST_API_PUBLISH_BIND:$REST_API_PUBLISH_PORT:$SERVICE_PORT" \
   --rm \
   "$DOCKER_IMAGE_NAME":latest \
   "$IPADDRESS" \

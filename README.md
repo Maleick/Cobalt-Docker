@@ -21,6 +21,7 @@ If `.env` is missing, or if required keys are empty, the script exits immediatel
 
 - `REST_API_USER` (default: `csrestapi`)
 - `REST_API_PUBLISH_PORT` (default: `50443`)
+- `REST_API_PUBLISH_BIND` (default: `127.0.0.1`)
 - `SERVICE_BIND_HOST` (default: `0.0.0.0`)
 - `SERVICE_PORT` (default: `50443`)
 - `UPSTREAM_HOST` (default: `127.0.0.1`)
@@ -40,6 +41,7 @@ These are shell environment variables passed when invoking `cobalt-docker.sh` (n
 - `DOCKER_PLATFORM` (default: `linux/amd64`)
 - `MOUNT_SOURCE` (generic bind-mount override; defaults to the repo directory)
 - `COBALT_DOCKER_MOUNT_SOURCE` (legacy alias for `MOUNT_SOURCE`)
+- `REST_API_PUBLISH_BIND` (default: `127.0.0.1`; override REST API host bind)
 
 ### Setup
 
@@ -131,6 +133,7 @@ Use `.env` to override REST behavior when needed:
 
 - `REST_API_USER` (default: `csrestapi`)
 - `REST_API_PUBLISH_PORT` (default: `50443`)
+- `REST_API_PUBLISH_BIND` (default: `127.0.0.1`)
 - `SERVICE_BIND_HOST` (default: `0.0.0.0`)
 - `SERVICE_PORT` (default: `50443`)
 - `UPSTREAM_HOST` (default: `127.0.0.1`)
@@ -143,6 +146,7 @@ Example:
 ```dotenv
 REST_API_USER="csrestapi"
 REST_API_PUBLISH_PORT="50443"
+REST_API_PUBLISH_BIND="127.0.0.1"
 SERVICE_BIND_HOST="0.0.0.0"
 SERVICE_PORT="50443"
 UPSTREAM_HOST="127.0.0.1"
@@ -211,11 +215,17 @@ Host mappings configured by `cobalt-docker.sh`:
 - `50050/tcp` (teamserver)
 - `80/tcp`, `443/tcp` (HTTP/HTTPS listener ports)
 - `53/udp` (DNS listener use cases)
-- `127.0.0.1:${REST_API_PUBLISH_PORT}:${SERVICE_PORT}` (REST API, localhost-only by default)
+- `${REST_API_PUBLISH_BIND:-127.0.0.1}:${REST_API_PUBLISH_PORT}:${SERVICE_PORT}` (REST API, localhost-only by default)
 
 By default, the REST API is reachable from the host at:
 
 `https://127.0.0.1:50443`
+
+To override the host bind explicitly:
+
+```bash
+REST_API_PUBLISH_BIND=0.0.0.0 ./cobalt-docker.sh
+```
 
 ## Docker Desktop Shared Paths and `/opt` Mount Failures
 

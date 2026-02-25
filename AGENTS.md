@@ -44,7 +44,8 @@ Defaults:
 - `UPSTREAM_PORT=50050`
 - `SERVICE_BIND_HOST=0.0.0.0`
 - `SERVICE_PORT=50443`
-- host publish: `127.0.0.1:${REST_API_PUBLISH_PORT:-50443}:${SERVICE_PORT}`
+- `REST_API_PUBLISH_BIND=127.0.0.1`
+- host publish: `${REST_API_PUBLISH_BIND:-127.0.0.1}:${REST_API_PUBLISH_PORT:-50443}:${SERVICE_PORT}`
 
 ## Mount Fallback Contract
 
@@ -61,6 +62,12 @@ Run shell checks after script edits:
 
 - `bash -n /opt/Cobalt-Docker/cobalt-docker.sh`
 - `bash -n /opt/Cobalt-Docker/docker-entrypoint.sh`
+
+## Secret Hygiene
+
+Before committing docs/planning artifacts, run secret-pattern checks:
+
+- `./scripts/scan-secrets.sh`
 
 ## Documentation Rule
 
