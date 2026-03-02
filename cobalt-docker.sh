@@ -370,6 +370,7 @@ load_configuration() {
     TS_USERSPACE="$(get_env_value "TS_USERSPACE" || true)"
     USE_TAILSCALE_IP="$(get_env_value "USE_TAILSCALE_IP" || true)"
     TEAMSERVER_HOST_OVERRIDE_FROM_FILE="$(get_env_value "TEAMSERVER_HOST_OVERRIDE" || true)"
+    COBALT_LISTENER_BIND_HOST_FROM_FILE="$(get_env_value "COBALT_LISTENER_BIND_HOST" || true)"
 
     require_non_empty_config_value "COBALTSTRIKE_LICENSE" "$COBALTSTRIKE_LICENSE"
     require_non_empty_config_value "TEAMSERVER_PASSWORD" "$TEAMSERVER_PASSWORD"
@@ -395,6 +396,14 @@ load_configuration() {
     if [[ "$REST_API_PUBLISH_BIND" =~ [[:space:]] ]]; then
         echo "Error: REST_API_PUBLISH_BIND must not contain whitespace"
         exit 1
+    fi
+
+    if [ -z "$COBALT_LISTENER_BIND_HOST" ]; then
+        COBALT_LISTENER_BIND_HOST="$COBALT_LISTENER_BIND_HOST_FROM_FILE"
+    fi
+
+    if [ -z "$COBALT_LISTENER_BIND_HOST" ]; then
+        COBALT_LISTENER_BIND_HOST="0.0.0.0"
     fi
 
     if [ -z "$SERVICE_BIND_HOST" ]; then
