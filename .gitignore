@@ -15,3 +15,43 @@ secrets.*
 
 # GitHub App credentials
 gha-creds-*.json
+
+# Background shell transient state
+.bg-shell/
+
+# GSD agent state
+
+# ── GSD baseline (auto-generated) ──
+.gsd/activity/
+.gsd/forensics/
+.gsd/runtime/
+.gsd/worktrees/
+.gsd/parallel/
+.gsd/auto.lock
+.gsd/metrics.json
+.gsd/completed-units.json
+.gsd/STATE.md
+.gsd/gsd.db
+.gsd/DISCUSSION-MANIFEST.json
+.gsd/milestones/**/*-CONTINUE.md
+.gsd/milestones/**/continue.md
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+.env.*
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+target/
+vendor/
+coverage/
+.cache/
+tmp/
