@@ -19,22 +19,11 @@ gha-creds-*.json
 # Background shell transient state
 .bg-shell/
 
-# GSD agent state
-
-# ── GSD baseline (auto-generated) ──
-.gsd/activity/
-.gsd/forensics/
-.gsd/runtime/
-.gsd/worktrees/
-.gsd/parallel/
-.gsd/auto.lock
-.gsd/metrics.json
-.gsd/completed-units.json
-.gsd/STATE.md
-.gsd/gsd.db
-.gsd/DISCUSSION-MANIFEST.json
-.gsd/milestones/**/*-CONTINUE.md
-.gsd/milestones/**/continue.md
+# ── Tool/agent artifacts ──
+.gsd/
+.serena/
+.codex/
+.claude/settings.local.json
 *.swp
 *.swo
 *~
