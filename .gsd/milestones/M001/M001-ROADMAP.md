@@ -55,10 +55,10 @@ This milestone is complete only when all are true:
 
 ## Slices
 
-- [ ] **S01: Repo Housekeeping & CI Cleanup** `risk:low` `depends:[]`
+- [x] **S01: Repo Housekeeping & CI Cleanup** `risk:low` `depends:[]`
   > After this: Gemini CI workflows removed, Dockerfile pinned to ubuntu:24.04, .gitignore clean, COBALT_LISTENER_BIND_HOST has shell regression test coverage, all CI gates pass.
 
-- [ ] **S02: Operational Skill Core** `risk:high` `depends:[]`
+- [x] **S02: Operational Skill Core** `risk:high` `depends:[]`
   > After this: Agent can load the skill, auto-detect local Docker environment from .env, authenticate to the REST API via JWT, and follow the full async task lifecycle (submit → poll → log/error → present results). Verified by reading skill files and confirming workflow completeness — live API testing requires a running CS instance.
 
 - [ ] **S03: Endpoint Patterns & Operational Playbooks** `risk:medium` `depends:[S02]`
