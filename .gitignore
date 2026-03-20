@@ -19,6 +19,16 @@ gha-creds-*.json
 # Background shell transient state
 .bg-shell/
 
+# ── Development/planning artifacts (not for release) ──
+.planning/
+.agents/
+.github/commands/
+CLAUDE.md
+AGENTS.md
+soul.md
+idea.md
+docs/superpowers/
+
 # ── Tool/agent artifacts ──
 .gsd/
 .serena/
