@@ -145,7 +145,7 @@ run_setup_wizard() {
     esac
 
     # Prompt for required values
-    local license password ts_authkey hostname
+    local license password ts_authkey hostname profile_path
 
     if [ -z "$current_license" ]; then
         license="$(prompt_value "Cobalt Strike license key")"
@@ -181,9 +181,42 @@ run_setup_wizard() {
         write_env_value "USE_TAILSCALE_IP" "true" "$CONFIG_FILE"
     fi
 
+    echo ""
+    echo "  Malleable C2 profile (optional — press Enter for default)"
+    profile_path="$(prompt_value "  Path to .profile file")"
+
+    if [ -n "$profile_path" ]; then
+        if [ ! -f "$profile_path" ]; then
+            echo "  Error: file not found: $profile_path" >&2
+            exit 1
+        fi
+        local profile_filename
+        profile_filename="$(basename "$profile_path")"
+        cp "$profile_path" "$SCRIPT_DIR/$profile_filename"
+        PROFILE_NAME="$profile_filename"
+        echo "  Copied $profile_filename into project directory"
+    fi
+
     write_env_value "COBALTSTRIKE_LICENSE" "$license" "$CONFIG_FILE"
     write_env_value "TEAMSERVER_PASSWORD" "$password" "$CONFIG_FILE"
 
+    # Display configuration summary
+    echo ""
+    echo "  ┌─────────────────────────────────────────────┐"
+    printf '  │  Cobalt Strike key:  %-23s│\n' "[set]"
+    printf '  │  Teamserver password: %-22s│\n' "[set]"
+    if [ -n "$ts_authkey" ]; then
+        printf '  │  Tailscale:           %-22s│\n' "on"
+    else
+        printf '  │  Tailscale:           %-22s│\n' "off"
+    fi
+    printf '  │  REST API:            %-22s│\n' "on"
+    if [ -n "$PROFILE_NAME" ]; then
+        printf '  │  Malleable profile:   %-22s│\n' "$PROFILE_NAME"
+    else
+        printf '  │  Malleable profile:   %-22s│\n' "default"
+    fi
+    echo "  └─────────────────────────────────────────────┘"
     echo ""
     echo "  Configuration saved to $CONFIG_FILE"
     echo ""
@@ -584,11 +617,26 @@ load_configuration() {
 # 1. Load configuration (required preflight).
 echo "==> Loading configuration from $CONFIG_FILE..."
 load_configuration
-# Never print secret values in startup logs.
-echo "==> Configuration loaded. REST API user: $REST_API_USER, host publish port: $REST_API_PUBLISH_PORT, platform: $DOCKER_PLATFORM"
-echo "==> Startup controls: SERVICE_BIND_HOST=$SERVICE_BIND_HOST SERVICE_PORT=$SERVICE_PORT UPSTREAM_HOST=$UPSTREAM_HOST UPSTREAM_PORT=$UPSTREAM_PORT HEALTHCHECK_INSECURE=$HEALTHCHECK_INSECURE"
-echo "==> Runtime toggles: TS_USERSPACE=$TS_USERSPACE USE_TAILSCALE_IP=$USE_TAILSCALE_IP"
-echo "==> Healthcheck URL: $HEALTHCHECK_URL"
+
+# Display status summary
+echo ""
+echo "  ┌─────────────────────────────────────────────┐"
+printf '  │  Cobalt Strike key:  %-23s│\n' "[found]"
+printf '  │  Teamserver password: %-22s│\n' "[found]"
+if [ -n "${TS_AUTHKEY:-}" ]; then
+    printf '  │  Tailscale:           %-22s│\n' "on"
+else
+    printf '  │  Tailscale:           %-22s│\n' "off"
+fi
+printf '  │  REST API:            %-22s│\n' "on"
+if [ -n "$PROFILE_NAME" ]; then
+    printf '  │  Malleable profile:   %-22s│\n' "$PROFILE_NAME"
+else
+    printf '  │  Malleable profile:   %-22s│\n' "default"
+fi
+printf '  │  Platform:            %-22s│\n' "$DOCKER_PLATFORM"
+echo "  └─────────────────────────────────────────────┘"
+echo ""
 
 # 2. Build the Docker image.
 echo "==> Building the Docker image ($DOCKER_IMAGE_NAME)..."
