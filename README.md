@@ -17,9 +17,14 @@ The setup wizard will prompt you for:
 - **Team server password** (required)
 - **Tailscale auth key** (optional — press Enter to skip)
 - **Container hostname** (if Tailscale is enabled)
-- **Malleable C2 profile** (optional — press Enter for default, or provide an absolute path)
 
 If `.env` already exists with valid values, the wizard is skipped and deployment starts immediately.
+
+To deploy with a custom Malleable C2 profile:
+
+```bash
+./cobalt-docker.sh custom.profile
+```
 
 ## What This Does
 

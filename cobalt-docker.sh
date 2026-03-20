@@ -271,22 +271,6 @@ run_setup_wizard() {
         write_env_value "USE_TAILSCALE_IP" "true" "$CONFIG_FILE"
     fi
 
-    echo ""
-    echo "  Malleable C2 profile (optional — press Enter for default)"
-    profile_path="$(prompt_value "  Path to .profile file")"
-
-    if [ -n "$profile_path" ]; then
-        if [ ! -f "$profile_path" ]; then
-            echo "  Error: file not found: $profile_path" >&2
-            exit 1
-        fi
-        local profile_filename
-        profile_filename="$(basename "$profile_path")"
-        cp "$profile_path" "$SCRIPT_DIR/$profile_filename"
-        PROFILE_NAME="$profile_filename"
-        echo "  Copied $profile_filename into project directory"
-    fi
-
     write_env_value "COBALTSTRIKE_LICENSE" "$license" "$CONFIG_FILE"
     write_env_value "TEAMSERVER_PASSWORD" "$password" "$CONFIG_FILE"
 
