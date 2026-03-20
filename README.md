@@ -156,6 +156,63 @@ The entrypoint logs deterministic phase markers for triage:
 | `53`                       | UDP      | DNS listener (bound to `COBALT_LISTENER_BIND_HOST`)                    |
 | `${REST_API_PUBLISH_PORT}` | TCP      | REST API (bound to `REST_API_PUBLISH_BIND`, localhost-only by default) |
 
+## Prerequisites
+
+- **Docker** — [Docker Desktop](https://www.docker.com/get-started), [OrbStack](https://orbstack.dev/), or any Docker-compatible runtime
+- **A valid Cobalt Strike license key**
+
+That's it. Tailscale is installed inside the container — no host installation needed.
+
+## After Deployment
+
+The container runs in the **foreground**. Closing the terminal or pressing `Ctrl+C` stops the container.
+
+To run it in the background:
+
+```bash
+# Option 1: Use tmux or screen
+tmux new -s cobalt
+./cobalt-docker.sh
+# Ctrl+B, D to detach — reattach with: tmux attach -t cobalt
+
+# Option 2: Use nohup
+nohup ./cobalt-docker.sh > cobalt.log 2>&1 &
+# View logs: tail -f cobalt.log
+# Stop: docker stop cobaltstrike_server
+```
+
+To check if the container is running:
+
+```bash
+docker ps | grep cobaltstrike_server
+```
+
+## Stopping and Cleanup
+
+**Stop the container:**
+
+```bash
+docker stop cobaltstrike_server
+```
+
+The container uses `--rm`, so it is automatically removed when stopped. No cleanup needed.
+
+**Full cleanup** — remove the Docker image, `.env`, and any copied profiles:
+
+```bash
+docker stop cobaltstrike_server 2>/dev/null
+docker rmi cobaltstrike:latest
+rm -f .env
+```
+
+**Nuclear cleanup** — remove everything including the repo:
+
+```bash
+docker stop cobaltstrike_server 2>/dev/null
+docker rmi cobaltstrike:latest
+cd .. && rm -rf Cobalt-Docker
+```
+
 ## Troubleshooting
 
 **Quick diagnostics:**
