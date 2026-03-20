@@ -174,12 +174,13 @@ The container runs **detached** in the background. The script waits for startup 
 
 ```bash
 ./cobalt-docker.sh status                       # check if running
-./cobalt-docker.sh token                        # get a fresh bearer token
+./cobalt-docker.sh api-token                    # get a REST API bearer token
 ./cobalt-docker.sh stop                         # stop and remove the container
+./cobalt-docker.sh help                         # show all commands
 docker logs -f cobaltstrike_server              # follow logs
 ```
 
-After a machine reboot, the container restarts automatically. Run `./cobalt-docker.sh token` to get a new bearer token (tokens reset on restart).
+After a machine reboot, the container restarts automatically. Run `./cobalt-docker.sh api-token` to get a new bearer token (tokens reset on restart).
 
 ## Stopping and Cleanup
 

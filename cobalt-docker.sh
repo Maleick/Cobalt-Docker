@@ -57,10 +57,37 @@ PROFILE_SOURCE="none (no profile selected)"
 DO_TOKEN=false
 DO_STATUS=false
 DO_STOP=false
+DO_HELP=false
+
+show_help() {
+    echo ""
+    echo "Usage: ./cobalt-docker.sh [command] [options]"
+    echo ""
+    echo "Commands:"
+    echo "  (none)                Deploy the team server (runs setup wizard if needed)"
+    echo "  api-token             Get a REST API bearer token from a running server"
+    echo "  status                Check if the container is running"
+    echo "  stop                  Stop and remove the container"
+    echo "  lint <profile>        Lint a Malleable C2 profile without deploying"
+    echo "  help                  Show this help message"
+    echo ""
+    echo "Options:"
+    echo "  <profile>             Deploy with a Malleable C2 profile"
+    echo "  <profile> --lint      Lint the profile, then deploy"
+    echo ""
+    echo "Examples:"
+    echo "  ./cobalt-docker.sh                      # deploy with setup wizard"
+    echo "  ./cobalt-docker.sh custom.profile        # deploy with a profile"
+    echo "  ./cobalt-docker.sh api-token             # get bearer token"
+    echo "  ./cobalt-docker.sh status                # check if running"
+    echo "  ./cobalt-docker.sh stop                  # stop the server"
+    echo "  ./cobalt-docker.sh lint custom.profile   # lint only"
+    echo ""
+}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --token|token)
+        --token|token|--api-token|api-token)
             DO_TOKEN=true
             shift
             ;;
@@ -70,6 +97,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --stop|stop)
             DO_STOP=true
+            shift
+            ;;
+        --help|help|-h)
+            DO_HELP=true
             shift
             ;;
         --lint)
@@ -87,6 +118,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [ "$DO_HELP" = true ]; then
+    show_help
+    exit 0
+fi
 
 # Handle quick commands that don't need full config
 if [ "$DO_STOP" = true ]; then
