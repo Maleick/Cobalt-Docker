@@ -85,18 +85,22 @@ These are shell variables passed when invoking `cobalt-docker.sh`, not stored in
 
 ## Usage Patterns
 
-### Custom profile
+### Custom Malleable C2 Profiles
 
-Profiles are automatically linted with `c2lint` before deployment:
+Place your `.profile` files in the `profiles/` directory. An example profile is included to get started.
 
-```bash
-./cobalt-docker.sh custom.profile
-```
-
-To lint without deploying:
+Profiles are automatically linted with `c2lint` before deployment. If linting fails, the server does not start.
 
 ```bash
-./cobalt-docker.sh lint custom.profile
+# Deploy with the included example profile
+./cobalt-docker.sh profiles/example.profile
+
+# Deploy with your own profile
+cp /path/to/your/custom.profile profiles/
+./cobalt-docker.sh profiles/custom.profile
+
+# Lint a profile without deploying (useful on macOS where the server may not run)
+./cobalt-docker.sh lint profiles/custom.profile
 ```
 
 ## REST API
