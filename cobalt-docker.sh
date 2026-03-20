@@ -7,9 +7,10 @@
 set -euo pipefail
 
 # --- Configuration ---
-# Name for the Docker image and container
+# Name for the Docker image
 DOCKER_IMAGE_NAME="cobaltstrike"
-DOCKER_CONTAINER_NAME="cobaltstrike_server"
+# Container name is loaded from .env (CONTAINER_NAME) or defaults
+DOCKER_CONTAINER_NAME=""
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-${COBALT_DOCKER_PLATFORM:-linux/amd64}}"
 CONTAINER_MOUNT_TARGET="/opt/cobaltstrike/mount"
 
@@ -123,13 +124,32 @@ fi
 
 # Handle quick commands that don't need full config
 if [ "$DO_STOP" = true ]; then
+    # Load container name from .env
+    if [ -f "$CONFIG_FILE" ]; then
+        DOCKER_CONTAINER_NAME="$(get_env_value "CONTAINER_NAME" 2>/dev/null || echo "cobaltstrike-server")"
+    else
+        DOCKER_CONTAINER_NAME="cobaltstrike-server"
+    fi
+
     echo "==> Stopping $DOCKER_CONTAINER_NAME..."
+
+    # Remove from Tailscale if connected
+    if docker ps -q -f "name=$DOCKER_CONTAINER_NAME" | grep -q .; then
+        docker exec "$DOCKER_CONTAINER_NAME" tailscale logout 2>/dev/null && echo "==> Removed from Tailnet." || true
+    fi
+
     docker stop "$DOCKER_CONTAINER_NAME" 2>/dev/null && echo "==> Stopped." || echo "==> Container not running."
     docker rm "$DOCKER_CONTAINER_NAME" 2>/dev/null || true
     exit 0
 fi
 
 if [ "$DO_STATUS" = true ]; then
+    if [ -f "$CONFIG_FILE" ]; then
+        DOCKER_CONTAINER_NAME="$(get_env_value "CONTAINER_NAME" 2>/dev/null || echo "cobaltstrike-server")"
+    else
+        DOCKER_CONTAINER_NAME="cobaltstrike-server"
+    fi
+
     if docker ps -q -f "name=$DOCKER_CONTAINER_NAME" | grep -q .; then
         echo "==> $DOCKER_CONTAINER_NAME is running"
         docker ps -f "name=$DOCKER_CONTAINER_NAME" --format "  Started: {{.RunningFor}}\n  Ports: {{.Ports}}"
@@ -293,13 +313,18 @@ run_setup_wizard() {
     fi
 
     echo ""
+    local container_name
+    container_name="$(prompt_value "Container name" "cobalt-strike-server")"
+    write_env_value "CONTAINER_NAME" "$container_name" "$CONFIG_FILE"
+    DOCKER_CONTAINER_NAME="$container_name"
+
+    echo ""
     echo "  Tailscale (optional — press Enter to skip)"
     ts_authkey="$(prompt_value "  Tailscale auth key" "${current_ts_authkey}")"
 
     if [ -n "$ts_authkey" ]; then
-        hostname="$(prompt_value "  Container hostname" "cobalt-strike-server")"
         write_env_value "TS_AUTHKEY" "$ts_authkey" "$CONFIG_FILE"
-        write_env_value "TS_EXTRA_ARGS" "--hostname=${hostname}" "$CONFIG_FILE"
+        write_env_value "TS_EXTRA_ARGS" "--hostname=${container_name}" "$CONFIG_FILE"
         write_env_value "TS_USERSPACE" "true" "$CONFIG_FILE"
         write_env_value "USE_TAILSCALE_IP" "true" "$CONFIG_FILE"
     fi
@@ -310,10 +335,11 @@ run_setup_wizard() {
     # Display configuration summary
     echo ""
     echo "  ┌─────────────────────────────────────────────┐"
-    printf '  │  Cobalt Strike key:  %-23s│\n' "[set]"
+    printf '  │  Container name:      %-22s│\n' "$container_name"
+    printf '  │  Cobalt Strike key:   %-22s│\n' "[set]"
     printf '  │  Teamserver password: %-22s│\n' "[set]"
     if [ -n "$ts_authkey" ]; then
-        printf '  │  Tailscale:           %-22s│\n' "on"
+        printf '  │  Tailscale:           %-22s│\n' "on ($container_name)"
     else
         printf '  │  Tailscale:           %-22s│\n' "off"
     fi
@@ -627,6 +653,7 @@ load_configuration() {
         run_setup_wizard
     fi
 
+    DOCKER_CONTAINER_NAME="$(get_env_value "CONTAINER_NAME" || echo "cobaltstrike-server")"
     COBALTSTRIKE_LICENSE="$(get_env_value "COBALTSTRIKE_LICENSE" || true)"
     TEAMSERVER_PASSWORD="$(get_env_value "TEAMSERVER_PASSWORD" || true)"
     REST_API_USER="$(get_env_value "REST_API_USER" || true)"
