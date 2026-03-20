@@ -92,15 +92,15 @@ Place your `.profile` files in the `profiles/` directory. An example profile is 
 Profiles are automatically linted with `c2lint` before deployment. If linting fails, the server does not start.
 
 ```bash
-# Deploy with the included example profile
-./cobalt-docker.sh profiles/example.profile
+# Deploy with the included reference profile
+./cobalt-docker.sh profiles/reference.profile
 
 # Deploy with your own profile
 cp /path/to/your/custom.profile profiles/
 ./cobalt-docker.sh profiles/custom.profile
 
-# Lint a profile without deploying (useful on macOS where the server may not run)
-./cobalt-docker.sh lint profiles/custom.profile
+# Lint a profile without deploying
+./cobalt-docker.sh lint profiles/reference.profile
 ```
 
 ## REST API
