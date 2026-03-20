@@ -148,10 +148,10 @@ run_setup_wizard() {
     local license password ts_authkey hostname
 
     if [ -z "$current_license" ]; then
-        license="$(prompt_value "Cobalt Strike license key" "" "true")"
+        license="$(prompt_value "Cobalt Strike license key")"
         while [ -z "$license" ]; do
             echo "  License key is required." >&2
-            license="$(prompt_value "Cobalt Strike license key" "" "true")"
+            license="$(prompt_value "Cobalt Strike license key")"
         done
     else
         license="$current_license"
