@@ -133,7 +133,25 @@ if [ "$DO_TOKEN" = true ]; then
     ACCESS_TOKEN="$(printf '%s' "$TOKEN_JSON" | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"$//' || true)"
 
     if [ -n "$ACCESS_TOKEN" ]; then
-        echo "$ACCESS_TOKEN"
+        echo ""
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║  REST API Bearer Token                                      ║"
+        echo "╠══════════════════════════════════════════════════════════════╣"
+        printf '║  %s\n' "$ACCESS_TOKEN"
+        echo "║                                                              ║"
+        echo "║  Examples:                                                   ║"
+        echo "║                                                              ║"
+        echo "║  # List beacons                                              ║"
+        printf '║  curl -sk -H "Authorization: Bearer <token>" \\\n'
+        printf '║    https://127.0.0.1:%s/api/v1/beacons\n' "$TOKEN_PORT"
+        echo "║                                                              ║"
+        echo "║  # Health check                                              ║"
+        printf '║  curl -sk https://127.0.0.1:%s/health\n' "$TOKEN_PORT"
+        echo "║                                                              ║"
+        echo "║  # OpenAPI docs (full endpoint list)                         ║"
+        printf '║  curl -sk https://127.0.0.1:%s/v3/api-docs | python3 -m json.tool\n' "$TOKEN_PORT"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
     else
         echo "Error: Could not retrieve bearer token." >&2
         if [ -n "$TOKEN_JSON" ]; then
