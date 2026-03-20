@@ -192,7 +192,18 @@ docker inspect cobaltstrike_server                                        # 5. V
 
 Full runbook: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 
-## Docker Desktop Notes
+## Tested Environment
+
+This project is developed and tested on **macOS (Apple Silicon)** using **[OrbStack](https://orbstack.dev/)** as the Docker runtime. OrbStack provides better x86 emulation compatibility than Docker Desktop for containers that require AVX2 instructions (like `csrestapi`).
+
+**OrbStack setup notes:**
+
+- **Rosetta mode** (default) — teamserver runs fine, but `csrestapi` may fail with an AVX2 CPU feature error. If this happens, disable "Use Rosetta to run Intel code" in OrbStack → System → Compatibility and restart.
+- **QEMU mode** (Rosetta disabled) — full AVX2 support. Both teamserver and csrestapi run correctly. Slower than Rosetta but fully compatible.
+
+The project also works with **Docker Desktop** on macOS and Linux. On native x86 hardware, no emulation settings are needed.
+
+### Docker Desktop Mount Notes
 
 On macOS, Docker Desktop may reject bind mounts for paths outside its shared directories (e.g., `/opt`).
 
