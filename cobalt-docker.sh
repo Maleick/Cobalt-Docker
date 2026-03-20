@@ -185,14 +185,6 @@ run_setup_wizard() {
     write_env_value "TEAMSERVER_PASSWORD" "$password" "$CONFIG_FILE"
 
     echo ""
-    local skip_rest=""
-    skip_rest="$(prompt_value "  Skip REST API? (required if running under emulation without AVX2) [y/N]" "n")"
-    case "$skip_rest" in
-        [Yy]|[Yy][Ee][Ss]) write_env_value "SKIP_REST_API" "true" "$CONFIG_FILE" ;;
-        *) write_env_value "SKIP_REST_API" "false" "$CONFIG_FILE" ;;
-    esac
-
-    echo ""
     echo "  Configuration saved to $CONFIG_FILE"
     echo ""
 }
