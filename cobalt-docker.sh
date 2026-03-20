@@ -54,8 +54,24 @@ PROFILE_CONTAINER_PATH=""
 MOUNT_MODE="none"
 PROFILE_SOURCE="none (no profile selected)"
 
+DO_TOKEN=false
+DO_STATUS=false
+DO_STOP=false
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --token|token)
+            DO_TOKEN=true
+            shift
+            ;;
+        --status|status)
+            DO_STATUS=true
+            shift
+            ;;
+        --stop|stop)
+            DO_STOP=true
+            shift
+            ;;
         --lint)
             DO_LINT=true
             shift
@@ -71,6 +87,62 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Handle quick commands that don't need full config
+if [ "$DO_STOP" = true ]; then
+    echo "==> Stopping $DOCKER_CONTAINER_NAME..."
+    docker stop "$DOCKER_CONTAINER_NAME" 2>/dev/null && echo "==> Stopped." || echo "==> Container not running."
+    docker rm "$DOCKER_CONTAINER_NAME" 2>/dev/null || true
+    exit 0
+fi
+
+if [ "$DO_STATUS" = true ]; then
+    if docker ps -q -f "name=$DOCKER_CONTAINER_NAME" | grep -q .; then
+        echo "==> $DOCKER_CONTAINER_NAME is running"
+        docker ps -f "name=$DOCKER_CONTAINER_NAME" --format "  Started: {{.RunningFor}}\n  Ports: {{.Ports}}"
+    else
+        echo "==> $DOCKER_CONTAINER_NAME is not running"
+    fi
+    exit 0
+fi
+
+if [ "$DO_TOKEN" = true ]; then
+    if ! docker ps -q -f "name=$DOCKER_CONTAINER_NAME" | grep -q .; then
+        echo "Error: $DOCKER_CONTAINER_NAME is not running." >&2
+        exit 1
+    fi
+
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "Error: $CONFIG_FILE not found — cannot read credentials." >&2
+        exit 1
+    fi
+
+    TOKEN_USER="$(get_env_value "REST_API_USER" 2>/dev/null || echo "csrestapi")"
+    TOKEN_PASS="$(get_env_value "TEAMSERVER_PASSWORD" 2>/dev/null || true)"
+    TOKEN_PORT="$(get_env_value "REST_API_PUBLISH_PORT" 2>/dev/null || echo "50443")"
+
+    if [ -z "$TOKEN_PASS" ]; then
+        echo "Error: TEAMSERVER_PASSWORD not found in $CONFIG_FILE" >&2
+        exit 1
+    fi
+
+    TOKEN_JSON="$(curl -sk -X POST "https://127.0.0.1:${TOKEN_PORT}/api/auth/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"username\":\"${TOKEN_USER}\",\"password\":\"${TOKEN_PASS}\",\"duration_ms\":86400000}" 2>/dev/null || true)"
+
+    ACCESS_TOKEN="$(printf '%s' "$TOKEN_JSON" | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"$//' || true)"
+
+    if [ -n "$ACCESS_TOKEN" ]; then
+        echo "$ACCESS_TOKEN"
+    else
+        echo "Error: Could not retrieve bearer token." >&2
+        if [ -n "$TOKEN_JSON" ]; then
+            echo "Response: $TOKEN_JSON" >&2
+        fi
+        exit 1
+    fi
+    exit 0
+fi
 
 prompt_value() {
     local prompt_text="$1"
@@ -694,11 +766,12 @@ if [ -n "$TS_AUTHKEY" ]; then
     fi
 fi
 
-# 8. Run the Docker container.
+# 8. Run the Docker container (detached).
 echo "==> Starting Cobalt Strike Docker container ($DOCKER_CONTAINER_NAME)..."
 docker rm -f "$DOCKER_CONTAINER_NAME" >/dev/null 2>&1 || true
-docker run --name "$DOCKER_CONTAINER_NAME" \
+docker run -d --name "$DOCKER_CONTAINER_NAME" \
   --platform "$DOCKER_PLATFORM" \
+  --restart unless-stopped \
   ${DOCKER_MOUNT_ARGS[@]+"${DOCKER_MOUNT_ARGS[@]}"} \
   ${TUN_DEVICE_ARGS[@]+"${TUN_DEVICE_ARGS[@]}"} \
   -e "REST_API_USER=$REST_API_USER" \
@@ -720,8 +793,68 @@ docker run --name "$DOCKER_CONTAINER_NAME" \
   -p "$COBALT_LISTENER_BIND_HOST:443:443" \
   -p "$COBALT_LISTENER_BIND_HOST:53:53/udp" \
   -p "$REST_API_PUBLISH_BIND:$REST_API_PUBLISH_PORT:$SERVICE_PORT" \
-  --rm \
   "$DOCKER_IMAGE_NAME":latest \
   "$TEAMSERVER_HOST_TARGET" \
   "$TEAMSERVER_PASSWORD" \
-  ${PROFILE_CONTAINER_PATH:+"$PROFILE_CONTAINER_PATH"}
+  ${PROFILE_CONTAINER_PATH:+"$PROFILE_CONTAINER_PATH"} >/dev/null
+
+echo "==> Container started in background. Waiting for startup..."
+
+# 9. Follow logs and wait for startup to complete, then display status and exit.
+STARTUP_TIMEOUT=120
+BEARER_TOKEN=""
+
+for i in $(seq 1 "$STARTUP_TIMEOUT"); do
+    # Check if container is still running
+    if ! docker ps -q -f "name=$DOCKER_CONTAINER_NAME" | grep -q .; then
+        echo ""
+        echo "Error: Container exited unexpectedly. Check logs:"
+        echo "  docker logs $DOCKER_CONTAINER_NAME"
+        exit 1
+    fi
+
+    LOGS="$(docker logs "$DOCKER_CONTAINER_NAME" 2>&1)"
+
+    # Check for fatal errors
+    if printf '%s' "$LOGS" | grep -q 'STARTUP\[.*\] ERROR'; then
+        echo ""
+        printf '%s' "$LOGS" | grep 'STARTUP\[.*\] ERROR'
+        echo ""
+        echo "Check full logs: docker logs $DOCKER_CONTAINER_NAME"
+        exit 1
+    fi
+
+    # Check if monitor phase reached (startup complete)
+    if printf '%s' "$LOGS" | grep -q 'STARTUP\[monitor\]'; then
+        # Try to extract bearer token
+        BEARER_TOKEN="$(printf '%s' "$LOGS" | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"$//' | head -1 || true)"
+        break
+    fi
+
+    # Check if rest-token phase reached (token displayed even if monitor hasn't logged yet)
+    if printf '%s' "$LOGS" | grep -q 'STARTUP\[rest-token\].*bearer token acquired'; then
+        BEARER_TOKEN="$(printf '%s' "$LOGS" | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"$//' | head -1 || true)"
+        break
+    fi
+
+    sleep 1
+done
+
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║  Cobalt Strike Docker — Running                              ║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+printf '║  Container:  %-47s║\n' "$DOCKER_CONTAINER_NAME"
+printf '║  Teamserver: %-47s║\n' "https://$TEAMSERVER_HOST_TARGET:50050"
+printf '║  REST API:   %-47s║\n' "https://$REST_API_PUBLISH_BIND:$REST_API_PUBLISH_PORT"
+if [ -n "$BEARER_TOKEN" ]; then
+    echo "║                                                              ║"
+    echo "║  Bearer Token:                                               ║"
+    printf '║  %s\n' "$BEARER_TOKEN"
+fi
+echo "║                                                              ║"
+echo "║  Commands:                                                   ║"
+echo "║    docker logs -f cobaltstrike_server   # follow logs        ║"
+echo "║    docker stop cobaltstrike_server      # stop server        ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""

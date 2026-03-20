@@ -165,52 +165,31 @@ That's it. Tailscale is installed inside the container — no host installation 
 
 ## After Deployment
 
-The container runs in the **foreground**. Closing the terminal or pressing `Ctrl+C` stops the container.
-
-To run it in the background:
+The container runs **detached** in the background. The script waits for startup to complete, displays the bearer token and connection info, then returns you to the command line. You can close the terminal — the container keeps running.
 
 ```bash
-# Option 1: Use tmux or screen
-tmux new -s cobalt
-./cobalt-docker.sh
-# Ctrl+B, D to detach — reattach with: tmux attach -t cobalt
-
-# Option 2: Use nohup
-nohup ./cobalt-docker.sh > cobalt.log 2>&1 &
-# View logs: tail -f cobalt.log
-# Stop: docker stop cobaltstrike_server
+./cobalt-docker.sh status                       # check if running
+./cobalt-docker.sh token                        # get a fresh bearer token
+./cobalt-docker.sh stop                         # stop and remove the container
+docker logs -f cobaltstrike_server              # follow logs
 ```
 
-To check if the container is running:
-
-```bash
-docker ps | grep cobaltstrike_server
-```
+After a machine reboot, the container restarts automatically. Run `./cobalt-docker.sh token` to get a new bearer token (tokens reset on restart).
 
 ## Stopping and Cleanup
 
 **Stop the container:**
 
 ```bash
-docker stop cobaltstrike_server
+./cobalt-docker.sh stop
 ```
 
-The container uses `--rm`, so it is automatically removed when stopped. No cleanup needed.
-
-**Full cleanup** — remove the Docker image, `.env`, and any copied profiles:
+**Full cleanup** — remove the Docker image and `.env`:
 
 ```bash
-docker stop cobaltstrike_server 2>/dev/null
+./cobalt-docker.sh stop
 docker rmi cobaltstrike:latest
 rm -f .env
-```
-
-**Nuclear cleanup** — remove everything including the repo:
-
-```bash
-docker stop cobaltstrike_server 2>/dev/null
-docker rmi cobaltstrike:latest
-cd .. && rm -rf Cobalt-Docker
 ```
 
 ## Troubleshooting
