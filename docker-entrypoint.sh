@@ -15,6 +15,7 @@ HEALTHCHECK_URL="${HEALTHCHECK_URL:-https://127.0.0.1:${SERVICE_PORT}/health}"
 TS_USERSPACE="${TS_USERSPACE:-false}"
 USE_TAILSCALE_IP="${USE_TAILSCALE_IP:-false}"
 STARTUP_PROBE_TIMEOUT_SECONDS="${STARTUP_PROBE_TIMEOUT_SECONDS:-60}"
+SKIP_REST_API="${SKIP_REST_API:-false}"
 
 TEAMSERVER_PID=""
 REST_PID=""
@@ -201,6 +202,7 @@ fi
 HEALTHCHECK_INSECURE="$(normalize_bool_or_fail "preflight" "HEALTHCHECK_INSECURE" "$HEALTHCHECK_INSECURE")"
 TS_USERSPACE="$(normalize_bool_or_fail "preflight" "TS_USERSPACE" "$TS_USERSPACE")"
 USE_TAILSCALE_IP="$(normalize_bool_or_fail "preflight" "USE_TAILSCALE_IP" "$USE_TAILSCALE_IP")"
+SKIP_REST_API="$(normalize_bool_or_fail "preflight" "SKIP_REST_API" "$SKIP_REST_API")"
 
 TEAMSERVER_HOST="$1"
 TEAMSERVER_PASSWORD="$2"
@@ -254,13 +256,20 @@ TEAMSERVER_PID="$!"
 wait_for_teamserver_tls_readiness
 
 log_phase "rest-launch" "starting csrestapi with user '$REST_API_USER'"
-(
-    cd "$REST_SERVER_DIR"
-    SERVER_ADDRESS="$SERVICE_BIND_HOST" \
-    SERVER_PORT="$SERVICE_PORT" \
-    ./csrestapi --user "$REST_API_USER" --pass "$TEAMSERVER_PASSWORD" --host "$UPSTREAM_HOST" --port "$UPSTREAM_PORT"
-) &
-REST_PID="$!"
+if [ "$SKIP_REST_API" = "true" ]; then
+    log_phase "rest-launch" "SKIP_REST_API=true — skipping csrestapi (Apple Silicon / AVX2 incompatible)"
+    log_phase "monitor" "startup complete; monitoring teamserver process (REST API skipped)"
+    wait "$TEAMSERVER_PID" || true
+    fail_phase "monitor" "teamserver exited"
+else
+    (
+        cd "$REST_SERVER_DIR"
+        SERVER_ADDRESS="$SERVICE_BIND_HOST" \
+        SERVER_PORT="$SERVICE_PORT" \
+        ./csrestapi --user "$REST_API_USER" --pass "$TEAMSERVER_PASSWORD" --host "$UPSTREAM_HOST" --port "$UPSTREAM_PORT"
+    ) &
+    REST_PID="$!"
 
-wait_for_rest_healthcheck
-monitor_runtime_processes
+    wait_for_rest_healthcheck
+    monitor_runtime_processes
+fi

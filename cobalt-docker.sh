@@ -39,6 +39,7 @@ REST_API_PUBLISH_PORT=""
 REST_API_PUBLISH_BIND="${REST_API_PUBLISH_BIND:-}"
 COBALT_LISTENER_BIND_HOST="${COBALT_LISTENER_BIND_HOST:-}"
 TEAMSERVER_HOST_OVERRIDE="${TEAMSERVER_HOST_OVERRIDE:-}"
+SKIP_REST_API=""
 SERVICE_BIND_HOST=""
 SERVICE_PORT=""
 UPSTREAM_HOST=""
@@ -369,6 +370,7 @@ load_configuration() {
     TS_EXTRA_ARGS="$(get_env_value "TS_EXTRA_ARGS" || true)"
     TS_USERSPACE="$(get_env_value "TS_USERSPACE" || true)"
     USE_TAILSCALE_IP="$(get_env_value "USE_TAILSCALE_IP" || true)"
+    SKIP_REST_API="$(get_env_value "SKIP_REST_API" || true)"
     TEAMSERVER_HOST_OVERRIDE_FROM_FILE="$(get_env_value "TEAMSERVER_HOST_OVERRIDE" || true)"
     COBALT_LISTENER_BIND_HOST_FROM_FILE="$(get_env_value "COBALT_LISTENER_BIND_HOST" || true)"
 
@@ -428,6 +430,7 @@ load_configuration() {
     HEALTHCHECK_INSECURE="$(normalize_bool_setting "HEALTHCHECK_INSECURE" "$HEALTHCHECK_INSECURE" "true")"
     TS_USERSPACE="$(normalize_bool_setting "TS_USERSPACE" "$TS_USERSPACE" "false")"
     USE_TAILSCALE_IP="$(normalize_bool_setting "USE_TAILSCALE_IP" "$USE_TAILSCALE_IP" "false")"
+    SKIP_REST_API="$(normalize_bool_setting "SKIP_REST_API" "$SKIP_REST_API" "false")"
 
     if [ -z "$TEAMSERVER_HOST_OVERRIDE" ]; then
         TEAMSERVER_HOST_OVERRIDE="$TEAMSERVER_HOST_OVERRIDE_FROM_FILE"
@@ -529,6 +532,7 @@ docker run --name "$DOCKER_CONTAINER_NAME" \
   -e "TS_EXTRA_ARGS=$TS_EXTRA_ARGS" \
   -e "TS_USERSPACE=$TS_USERSPACE" \
   -e "USE_TAILSCALE_IP=$USE_TAILSCALE_IP" \
+  -e "SKIP_REST_API=$SKIP_REST_API" \
   --cap-add=NET_ADMIN \
   -p 50050:50050 \
   -p "$COBALT_LISTENER_BIND_HOST:80:80" \
