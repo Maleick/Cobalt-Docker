@@ -1,108 +1,77 @@
 # Cobalt Strike Docker
 
-This project builds and runs a Cobalt Strike team server in Docker. It supports Cobalt Strike **4.12** and now starts the REST API (`csrestapi`) automatically alongside teamserver.
+Containerized Cobalt Strike 4.12 team server with automatic REST API startup.
 
-## Current Repository State (v1.1)
+![GitHub stars](https://img.shields.io/github/stars/Maleick/Cobalt-Docker?style=flat-square) ![License](https://img.shields.io/github/license/Maleick/Cobalt-Docker?style=flat-square) ![GitHub release](https://img.shields.io/github/v/release/Maleick/Cobalt-Docker?style=flat-square) ![Docker ready](https://img.shields.io/badge/docker-ready-blue?style=flat-square&logo=docker) ![Cobalt Strike 4.12](https://img.shields.io/badge/Cobalt%20Strike-4.12-red?style=flat-square) ![REST API](https://img.shields.io/badge/REST%20API-integrated-green?style=flat-square) ![CI](https://img.shields.io/github/actions/workflow/status/Maleick/Cobalt-Docker/runtime-reliability-gates.yml?style=flat-square&label=CI)
 
-Runtime hardening and governance documentation are both in place:
-
-- Runtime and operator docs are covered in this README and [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md).
-- Branch protection governance is documented in:
-  - [.planning/milestones/v1.1-branch-protection-policy.md](./.planning/milestones/v1.1-branch-protection-policy.md)
-  - [.planning/milestones/v1.1-governance-verification-procedure.md](./.planning/milestones/v1.1-governance-verification-procedure.md)
-  - [.planning/milestones/v1.1-governance-exception-workflow.md](./.planning/milestones/v1.1-governance-exception-workflow.md)
-
-## Prerequisites
-
-- [Docker](https://www.docker.com/get-started)
-- A valid Cobalt Strike license key
-
-## Required Preflight: Populate `.env` First
-
-`cobalt-docker.sh` now requires a populated `.env` file before it will run.  
-If `.env` is missing, or if required keys are empty, the script exits immediately and does not deploy.
-
-### Required keys
-
-- `COBALTSTRIKE_LICENSE`
-- `TEAMSERVER_PASSWORD`
-
-### Optional keys
-
-- `REST_API_USER` (default: `csrestapi`)
-- `REST_API_PUBLISH_PORT` (default: `50443`)
-- `REST_API_PUBLISH_BIND` (default: `127.0.0.1`)
-- `SERVICE_BIND_HOST` (default: `0.0.0.0`)
-- `SERVICE_PORT` (default: `50443`)
-- `UPSTREAM_HOST` (default: `127.0.0.1`)
-- `UPSTREAM_PORT` (default: `50050`)
-- `HEALTHCHECK_URL` (default: `https://127.0.0.1:${SERVICE_PORT}/health`)
-- `HEALTHCHECK_INSECURE` (default: `true`)
-- `TS_AUTHKEY` (Tailscale auth key for joining a Tailnet)
-- `TS_API_KEY` (Tailscale API key for automation)
-- `TS_EXTRA_ARGS` (Extra arguments for `tailscale up`)
-- `TS_USERSPACE` (default: `false`; must be `true` or `false`)
-- `USE_TAILSCALE_IP` (default: `false`; must be `true` or `false`)
-- `TEAMSERVER_HOST_OVERRIDE` (optional host/runtime target override for platform detection issues)
-
-Runtime control validation is strict: malformed port or boolean values fail preflight before Docker build/run.
-
-### Runtime override environment variables (shell)
-
-These are shell environment variables passed when invoking `cobalt-docker.sh` (not values stored in `.env`):
-
-- `DOCKER_PLATFORM` (default: `linux/amd64`)
-- `MOUNT_SOURCE` (generic bind-mount override; defaults to the repo directory)
-- `COBALT_DOCKER_MOUNT_SOURCE` (legacy alias for `MOUNT_SOURCE`)
-- `REST_API_PUBLISH_BIND` (default: `127.0.0.1`; override REST API host bind)
-- `TEAMSERVER_HOST_OVERRIDE` (override host/runtime target passed to teamserver)
-
-### Setup
+## Quick Start
 
 ```bash
+git clone https://github.com/Maleick/Cobalt-Docker.git && cd Cobalt-Docker
 cp .env.example .env
-```
-
-Edit `.env` and set real values for at least:
-
-```dotenv
-COBALTSTRIKE_LICENSE="your-license-key"
-TEAMSERVER_PASSWORD="your-teamserver-password"
-```
-
-## Files
-
-- `Dockerfile`: Builds the Cobalt Strike image and uses a custom entrypoint that starts both teamserver and REST API.
-- `docker-entrypoint.sh`: Starts `teamserver --experimental-db`, waits for readiness, then starts `csrestapi`.
-- `cobalt-docker.sh`: Validates `.env`, builds the image, optional profile linting, and runs the container.
-- `scripts/dyednv-wizard.sh`: Interactive generator for `dyednv.v1` deployment spec files.
-- `AGENTS.md`: Local repository workflow guidance for coding agents.
-- `.env.example`: Template for required and optional runtime configuration.
-- `.gitignore`: Keeps secrets out of git (including `.env`) while allowing `.env.example`.
-- `docs/DYEDNV.md`: DyeDNV schema, validation rules, and example output.
-- `malleable.profile*` (Optional): If present, these profiles will be copied into the Docker image.
-
-## Usage
-
-1. Clone and enter the repository:
-
-```bash
-git clone https://github.com/Maleick/Cobalt-Docker.git
-cd Cobalt-Docker
-```
-
-2. Populate `.env` as shown above.
-3. Make the script executable:
-
-```bash
-chmod +x cobalt-docker.sh
-```
-
-4. Run:
-
-```bash
+# Edit .env — set COBALTSTRIKE_LICENSE and TEAMSERVER_PASSWORD
 ./cobalt-docker.sh
 ```
+
+## What This Does
+
+- **Builds and runs** a Cobalt Strike 4.12 team server inside a Docker container with a single command.
+- **Starts the REST API automatically** — `csrestapi` launches alongside teamserver with no extra flags.
+- **Validates everything before launch** — `.env` preflight checks catch misconfiguration before Docker build/run.
+- **Works on macOS and Linux** — automatic host detection, mount fallback for Docker Desktop, and Apple Silicon compatibility via `SKIP_REST_API`.
+
+## Configuration
+
+### Required
+
+| Key                    | Default | Description                             |
+| ---------------------- | ------- | --------------------------------------- |
+| `COBALTSTRIKE_LICENSE` | —       | Your Cobalt Strike license key          |
+| `TEAMSERVER_PASSWORD`  | —       | Password for team server authentication |
+
+### Optional — REST API
+
+| Key                     | Default                                    | Description                                                                |
+| ----------------------- | ------------------------------------------ | -------------------------------------------------------------------------- |
+| `REST_API_USER`         | `csrestapi`                                | REST API authentication username                                           |
+| `REST_API_PUBLISH_PORT` | `50443`                                    | Host port for REST API                                                     |
+| `REST_API_PUBLISH_BIND` | `127.0.0.1`                                | Host bind address for REST API (localhost-only by default)                 |
+| `SERVICE_BIND_HOST`     | `0.0.0.0`                                  | In-container bind address for csrestapi                                    |
+| `SERVICE_PORT`          | `50443`                                    | In-container port for csrestapi                                            |
+| `UPSTREAM_HOST`         | `127.0.0.1`                                | Teamserver host that csrestapi connects to                                 |
+| `UPSTREAM_PORT`         | `50050`                                    | Teamserver port that csrestapi connects to                                 |
+| `HEALTHCHECK_URL`       | `https://127.0.0.1:${SERVICE_PORT}/health` | REST API health endpoint                                                   |
+| `HEALTHCHECK_INSECURE`  | `true`                                     | Allow self-signed TLS for health checks                                    |
+| `SKIP_REST_API`         | `false`                                    | Skip csrestapi startup (required for Apple Silicon — csrestapi needs AVX2) |
+
+### Optional — Networking
+
+| Key                         | Default   | Description                                                                                                |
+| --------------------------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| `COBALT_LISTENER_BIND_HOST` | `0.0.0.0` | Host bind address for C2 listener ports (80/443/53). Set to `127.0.0.1` if other services hold those ports |
+| `TEAMSERVER_HOST_OVERRIDE`  | —         | Override auto-detected host IP passed to teamserver                                                        |
+
+### Optional — Tailscale
+
+| Key                | Default | Description                                                             |
+| ------------------ | ------- | ----------------------------------------------------------------------- |
+| `TS_AUTHKEY`       | —       | Tailscale auth key for joining a Tailnet (ephemeral recommended)        |
+| `TS_API_KEY`       | —       | Tailscale API key for automation                                        |
+| `TS_EXTRA_ARGS`    | —       | Extra arguments for `tailscale up` (e.g., `--hostname=cobalt-docker`)   |
+| `TS_USERSPACE`     | `false` | Use userspace networking (required on macOS / environments without TUN) |
+| `USE_TAILSCALE_IP` | `false` | Override teamserver host with the Tailscale IPv4 address                |
+
+### Runtime Override Environment Variables
+
+These are shell variables passed when invoking `cobalt-docker.sh`, not stored in `.env`:
+
+| Variable                     | Default        | Description                                                           |
+| ---------------------------- | -------------- | --------------------------------------------------------------------- |
+| `DOCKER_PLATFORM`            | `linux/amd64`  | Docker `--platform` flag                                              |
+| `MOUNT_SOURCE`               | repo directory | Bind-mount source override (use when Docker cannot see the repo path) |
+| `COBALT_DOCKER_MOUNT_SOURCE` | —              | Legacy alias for `MOUNT_SOURCE`                                       |
+
+## Usage Patterns
 
 ### Custom profile
 
@@ -110,310 +79,154 @@ chmod +x cobalt-docker.sh
 ./cobalt-docker.sh custom.profile
 ```
 
-### Profile linting (`c2lint`)
+### Profile linting (c2lint)
 
 ```bash
-# Lint a specific profile only
+# Lint only (no deploy)
 ./cobalt-docker.sh lint custom.profile
 
-# Lint and then run
+# Lint then deploy
 ./cobalt-docker.sh custom.profile --lint
 ```
 
-## DyeDNV Wizard
+### DyeDNV Wizard
 
-Use the interactive wizard to collect deployment datasets and generate a `dyednv.v1` JSON spec:
+Generate a `dyednv.v1` deployment spec interactively:
 
 ```bash
 ./scripts/dyednv-wizard.sh
 ```
 
-Default output:
+Output lands in `configs/dyednv/<name>.dyednv.json`. The wizard pulls defaults from `.env` (or `.env.example`), validates all inputs, and stores only secret references — never raw secrets. See [docs/DYEDNV.md](./docs/DYEDNV.md) for the full spec format.
 
-```text
-configs/dyednv/<name>.dyednv.json
-```
+## REST API
 
-Wizard behavior:
+The REST API starts automatically. No extra flags needed — the entrypoint launches `csrestapi` after confirming teamserver TLS readiness.
 
-- Collects grouped datasets in order: metadata, teamserver/profile metadata, runtime, REST API, tailscale, and secret references.
-- Uses defaults from `.env` when available, otherwise `.env.example`.
-- Re-prompts until typed values are valid (ports, booleans, secret-ref format).
-- Stores secret references only (`scheme://value`) and rejects raw-secret-like values.
-- Writes no runtime state and does not modify `.env` or run deployment.
-
-See full format details in [docs/DYEDNV.md](./docs/DYEDNV.md).
-
-## REST API Integration
-
-The REST API integration is built into the default deployment path.
-
-If you run:
+**Verify it is working:**
 
 ```bash
-./cobalt-docker.sh
+PORT="${REST_API_PUBLISH_PORT:-50443}"
+
+# HTTP readiness (auth endpoints may return 401/403)
+curl -ksS -o /dev/null -w '%{http_code}\n' "https://127.0.0.1:${PORT}/health"
+
+# TLS negotiation
+openssl s_client -connect "127.0.0.1:${PORT}" -servername localhost -brief </dev/null
 ```
 
-the launcher builds/runs the container and the entrypoint automatically starts both:
+**Apple Silicon:** csrestapi requires AVX2 instructions not available under Rosetta emulation. Set `SKIP_REST_API=true` in `.env` to run teamserver without the REST API.
 
-- `teamserver --experimental-db`
-- `csrestapi`
-
-No extra startup flag is required for standard REST API deployment.
-
-### REST API vs MCP
-
-- This repository deploys and verifies the native Cobalt Strike REST API surface.
-- You can build separate MCP tooling on top of the REST API, but MCP is not part of the default runtime path in this project.
-
-### What is required
-
-- `.env` must already contain:
-  - `COBALTSTRIKE_LICENSE`
-  - `TEAMSERVER_PASSWORD`
-
-### Optional runtime controls
-
-Use `.env` to override REST behavior when needed:
-
-- `REST_API_USER` (default: `csrestapi`)
-- `REST_API_PUBLISH_PORT` (default: `50443`)
-- `REST_API_PUBLISH_BIND` (default: `127.0.0.1`)
-- `SERVICE_BIND_HOST` (default: `0.0.0.0`)
-- `SERVICE_PORT` (default: `50443`)
-- `UPSTREAM_HOST` (default: `127.0.0.1`)
-- `UPSTREAM_PORT` (default: `50050`)
-- `HEALTHCHECK_URL` (default: `https://127.0.0.1:${SERVICE_PORT}/health`)
-- `HEALTHCHECK_INSECURE` (default: `true`)
-
-Example:
-
-```dotenv
-REST_API_USER="csrestapi"
-REST_API_PUBLISH_PORT="50443"
-REST_API_PUBLISH_BIND="127.0.0.1"
-SERVICE_BIND_HOST="0.0.0.0"
-SERVICE_PORT="50443"
-UPSTREAM_HOST="127.0.0.1"
-UPSTREAM_PORT="50050"
-HEALTHCHECK_URL="https://127.0.0.1:50443/health"
-HEALTHCHECK_INSECURE="true"
-```
-
-### How to verify it is working
-
-```bash
-REST_API_PORT="${REST_API_PUBLISH_PORT:-50443}"
-
-# service reachable (auth-protected endpoints may return 401/403)
-curl -ksS -o /dev/null -w '%{http_code}\n' "https://127.0.0.1:${REST_API_PORT}/health"
-
-# TLS negotiation works
-openssl s_client -connect "127.0.0.1:${REST_API_PORT}" -servername localhost -brief </dev/null
-```
+**MCP integration:** You can build MCP tooling on top of the REST API, but MCP is not part of this project's default runtime.
 
 ## Tailscale Integration
 
-This container includes [Tailscale](https://tailscale.com) for secure networking and remote access to the teamserver.
-
-### Configuration
-
-Add the following to your `.env` file to enable Tailscale:
+Tailscale provides secure access to the team server over a private Tailnet without exposing ports publicly.
 
 ```dotenv
-# Required: join the Tailnet (ephemeral key recommended)
 TS_AUTHKEY="tskey-auth-..."
-
-# Optional: use Tailscale IP for the teamserver address
 USE_TAILSCALE_IP="true"
-
-# Optional: required for macOS or environments without TUN device access
-TS_USERSPACE="true"
-
-# Optional: extra arguments for 'tailscale up'
+TS_USERSPACE="true"           # required on macOS / no TUN
 TS_EXTRA_ARGS="--hostname=cobalt-docker"
 ```
 
-### Benefits
-
-- **Secure Access**: Connect to your teamserver over a private Tailscale network without exposing ports to the public internet.
-- **Stable IP**: Using `USE_TAILSCALE_IP="true"` ensures the teamserver binds to the stable Tailscale IP, simplifying beacon callback configuration.
-- **Ephemeral Nodes**: Use ephemeral auth keys to ensure the container is automatically removed from your Tailnet when it stops.
-
-### Local-Only Deployment Note
-
-If local deployment should not depend on Tailnet authentication, leave `TS_AUTHKEY` empty in `.env`.
-
-If `TS_AUTHKEY` is set to an invalid key, startup stops during Tailscale authentication before normal runtime monitoring.
+- **Stable IP** — `USE_TAILSCALE_IP=true` binds teamserver to the Tailscale IPv4 address.
+- **Ephemeral nodes** — use ephemeral auth keys so containers auto-remove from the Tailnet on stop.
+- **Local-only mode** — leave `TS_AUTHKEY` empty to skip Tailscale entirely. An invalid key halts startup during Tailscale authentication.
 
 ## Runtime Behavior
 
-On startup, the container entrypoint:
+### Startup Sequence
 
-1. Starts `teamserver` with `--experimental-db`.
-2. Waits for teamserver TLS readiness using `openssl s_client` (default upstream: `127.0.0.1:50050`).
-3. Starts `csrestapi` using:
-   - `--user $REST_API_USER`
-   - `--pass $TEAMSERVER_PASSWORD`
-   - `--host $UPSTREAM_HOST --port $UPSTREAM_PORT`
-   - Spring bind env: `SERVER_ADDRESS=$SERVICE_BIND_HOST`, `SERVER_PORT=$SERVICE_PORT`
-4. Waits for HTTPS readiness at `HEALTHCHECK_URL` (using `curl`, with `-k` when `HEALTHCHECK_INSECURE=true`), treating HTTP `2xx-4xx` as reachable.
+The entrypoint logs deterministic phase markers for triage:
 
-If either process exits unexpectedly, the container exits.
+| Marker                       | What happens                                                       |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `STARTUP[preflight]`         | Validates inputs, binaries, port ranges, boolean flags             |
+| `STARTUP[tailscale]`         | Starts tailscaled, authenticates (only when `TS_AUTHKEY` is set)   |
+| `STARTUP[teamserver-launch]` | Starts teamserver with `--experimental-db`                         |
+| `STARTUP[teamserver-ready]`  | TLS readiness confirmed via `openssl s_client` probe (60s timeout) |
+| `STARTUP[rest-launch]`       | Starts csrestapi (skipped when `SKIP_REST_API=true`)               |
+| `STARTUP[rest-ready]`        | HTTPS health check passes (HTTP 2xx-4xx = reachable)               |
+| `STARTUP[monitor]`           | Both processes supervised; container exits if either dies          |
 
-Entrypoint logs deterministic startup phase markers for triage:
+### Port Mapping
 
-- `STARTUP[preflight]`
-- `STARTUP[teamserver-launch]`
-- `STARTUP[teamserver-ready]`
-- `STARTUP[rest-launch]`
-- `STARTUP[rest-ready]`
-- `STARTUP[monitor]`
+| Port                       | Protocol | Purpose                                                                |
+| -------------------------- | -------- | ---------------------------------------------------------------------- |
+| `50050`                    | TCP      | Teamserver                                                             |
+| `80`                       | TCP      | HTTP listener (bound to `COBALT_LISTENER_BIND_HOST`)                   |
+| `443`                      | TCP      | HTTPS listener (bound to `COBALT_LISTENER_BIND_HOST`)                  |
+| `53`                       | UDP      | DNS listener (bound to `COBALT_LISTENER_BIND_HOST`)                    |
+| `${REST_API_PUBLISH_PORT}` | TCP      | REST API (bound to `REST_API_PUBLISH_BIND`, localhost-only by default) |
 
-## Network and Port Mapping
-
-Host mappings configured by `cobalt-docker.sh`:
-
-- `50050/tcp` (teamserver)
-- `80/tcp`, `443/tcp` (HTTP/HTTPS listener ports)
-- `53/udp` (DNS listener use cases)
-- `${REST_API_PUBLISH_BIND:-127.0.0.1}:${REST_API_PUBLISH_PORT}:${SERVICE_PORT}` (REST API, localhost-only by default)
-
-By default, the REST API is reachable from the host at:
-
-`https://127.0.0.1:50443`
-
-To override the host bind explicitly:
+Override the REST API bind to expose it beyond localhost:
 
 ```bash
 REST_API_PUBLISH_BIND=0.0.0.0 ./cobalt-docker.sh
 ```
 
-## Docker Desktop Shared Paths and `/opt` Mount Failures
+## Troubleshooting
 
-If you run Docker Desktop on macOS and see:
-
-`invalid mount config for type "bind": bind source path does not exist`
-
-the Docker daemon cannot see the host path even though your shell can. This commonly happens for paths outside Docker-shared roots (for example, `/opt/...`).
-
-`cobalt-docker.sh` now probes mountability automatically:
-
-- If mount probe succeeds: bind mount is used (`USE_BIND_MOUNT=true` behavior).
-- If mount probe fails: script falls back to in-image profiles (`USE_BIND_MOUNT=false` behavior) and continues.
-
-Launcher output now includes explicit branch markers:
-
-- `Mount mode: bind|fallback|none`
-- `Profile source: ...`
-
-Fallback limitation:
-
-- In fallback mode, only profiles baked into the image are available.
-- Custom host profiles require a daemon-visible shared `MOUNT_SOURCE`.
-
-Examples:
+**Quick diagnostics:**
 
 ```bash
-# Force a Docker-shared path for custom profiles
-MOUNT_SOURCE=/Users/<user>/Cobalt-Docker ./cobalt-docker.sh
+PORT="${REST_API_PUBLISH_PORT:-50443}"
 
-# Override platform at build/run time
-DOCKER_PLATFORM=linux/amd64 ./cobalt-docker.sh
-
-# Override host/runtime target when platform detection is unreliable
-TEAMSERVER_HOST_OVERRIDE=10.42.99.10 ./cobalt-docker.sh
+docker logs cobaltstrike_server                                           # 1. Check startup phases
+curl -ksS -o /dev/null -w '%{http_code}\n' "https://127.0.0.1:${PORT}/health"  # 2. HTTP readiness
+openssl s_client -connect "127.0.0.1:${PORT}" -servername localhost -brief </dev/null  # 3. TLS check
+lsof -iTCP:"${PORT}" -sTCP:LISTEN                                        # 4. Confirm listener
+docker inspect cobaltstrike_server                                        # 5. Verify env/port wiring
 ```
 
-## TLS Handshake Warning Interpretation
+**TLS handshake warnings:** `SSLHandshakeException: Remote host terminated the handshake` is non-fatal startup noise if the health endpoint responds, TLS negotiation succeeds, and processes remain up after all `STARTUP[]` markers log.
 
-`javax.net.ssl.SSLHandshakeException: Remote host terminated the handshake` can be startup noise (for example, a probe disconnecting early) or a real failure.  
-Treat it as non-fatal only when all three checks pass:
+**Preflight failures** — `cobalt-docker.sh` exits before build/run when:
 
-1. HTTPS health endpoint succeeds.
-2. TLS negotiation succeeds with `openssl`.
-3. Process stays up after startup markers are logged.
+- `.env` is missing or required keys are empty
+- Port values are not integers in 1-65535
+- Boolean settings are not `true` or `false`
+- `TEAMSERVER_HOST_OVERRIDE` contains whitespace
+- Host target auto-detection fails without an override set
 
-### Generic diagnostics checklist
+Full runbook: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+
+## Docker Desktop Notes
+
+On macOS, Docker Desktop may reject bind mounts for paths outside its shared directories (e.g., `/opt`).
+
+`cobalt-docker.sh` handles this automatically:
+
+- **Mount probe succeeds** — bind mount is used.
+- **Mount probe fails** — falls back to in-image profiles and continues.
+
+Launcher output shows the decision: `Mount mode: bind|fallback|none` and `Profile source: ...`
+
+In fallback mode, only profiles baked into the image at build time are available. To use host profiles, set `MOUNT_SOURCE` to a Docker-shared path:
 
 ```bash
-REST_API_PORT="${REST_API_PUBLISH_PORT:-50443}"
-
-# 1) Inspect startup sequence
-docker logs cobaltstrike_server
-
-# 2) TLS-aware HTTP readiness check (self-signed certs)
-curl -ksS -o /dev/null -w '%{http_code}\n' "https://127.0.0.1:${REST_API_PORT}/health"
-
-# 3) Verify TLS negotiation directly
-openssl s_client -connect "127.0.0.1:${REST_API_PORT}" -servername localhost -brief </dev/null
-
-# 4) Confirm listener
-lsof -iTCP:"${REST_API_PORT}" -sTCP:LISTEN
-
-# 5) Confirm env/port wiring
-docker inspect cobaltstrike_server
+MOUNT_SOURCE=/Users/<you>/Cobalt-Docker ./cobalt-docker.sh
 ```
 
-## Failure Conditions
+## Testing
 
-`cobalt-docker.sh` exits before build/run when:
-
-- `.env` does not exist
-- `COBALTSTRIKE_LICENSE` is missing/empty
-- `TEAMSERVER_PASSWORD` is missing/empty
-- `REST_API_PUBLISH_PORT` is invalid (not an integer from 1 to 65535)
-- `SERVICE_PORT` is invalid (not an integer from 1 to 65535)
-- `UPSTREAM_PORT` is invalid (not an integer from 1 to 65535)
-- `HEALTHCHECK_INSECURE` is invalid (must be `true` or `false`)
-- `TS_USERSPACE` is invalid (must be `true` or `false`)
-- `USE_TAILSCALE_IP` is invalid (must be `true` or `false`)
-- `TEAMSERVER_HOST_OVERRIDE` is invalid (contains whitespace)
-- Host target auto-detection fails and no `TEAMSERVER_HOST_OVERRIDE` is provided
-
-## Shell Regression Tests
-
-Run the Phase 3 shell regression suite:
+Run the shell regression suite:
 
 ```bash
 ./tests/run-shell-tests.sh
 ```
 
-Coverage includes:
+Covers preflight validation, mount mode/profile source branching, and startup sequencing.
 
-- preflight validation branches (`TEST-01`)
-- mount mode/profile source branches (`TEST-02`)
-- startup sequencing/readiness branches (`TEST-03`)
+## Credits & Inspiration
 
-## Troubleshooting Runbook
-
-Use the dedicated runbook for startup, mount fallback, health checks, and CI failure triage:
-
-- [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
-
-## Governance Checks (GitHub)
-
-For protected branches (`master`, `release/**`), the required status checks are:
-
-- `runtime-reliability / syntax-checks`
-- `runtime-reliability / shell-regression-suite`
-- `runtime-reliability / secret-scan`
-
-## Notes for Cobalt Strike 4.12
-
-- This repository has been validated with Cobalt Strike 4.12.
-- The helper profiles `malleable.profile.4.12-drip` and `malleable.profile.4.12-drip-vaex` were linted with `c2lint`.
-- If using a different Cobalt Strike version, re-lint your profiles and review Fortra release notes for behavior changes.
-
-## Credits & Kudos
-
-- **Cobalt Strike**: This project is based on Cobalt Strike by Fortra. A valid license is required.
-- **Docker**: Thanks to the Docker community for container tooling and docs.
-- **Inspiration**:
-  - [White Knight Labs docker-cobaltstrike](https://github.com/WKL-Sec/docker-cobaltstrike)
-  - [warhorse/docker-cobaltstrike](https://github.com/warhorse/docker-cobaltstrike)
-  - [ZSECURE/zDocker-cobaltstrike](https://github.com/ZSECURE/zDocker-cobaltstrike/tree/main)
-  - Blog post by Ezra Buckingham
+- **[Cobalt Strike](https://www.cobaltstrike.com/)** by Fortra — a valid license is required.
+- **Docker** community for container tooling and documentation.
+- [White Knight Labs docker-cobaltstrike](https://github.com/WKL-Sec/docker-cobaltstrike)
+- [warhorse/docker-cobaltstrike](https://github.com/warhorse/docker-cobaltstrike)
+- [ZSECURE/zDocker-cobaltstrike](https://github.com/ZSECURE/zDocker-cobaltstrike)
+- Blog post by Ezra Buckingham
 
 ## Disclaimer
 
