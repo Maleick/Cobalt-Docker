@@ -159,10 +159,10 @@ run_setup_wizard() {
     fi
 
     if [ -z "$current_password" ]; then
-        password="$(prompt_value "Team server password" "" "true")"
+        password="$(prompt_value "Team server password")"
         while [ -z "$password" ]; do
             echo "  Password is required." >&2
-            password="$(prompt_value "Team server password" "" "true")"
+            password="$(prompt_value "Team server password")"
         done
     else
         password="$current_password"
@@ -171,7 +171,7 @@ run_setup_wizard() {
 
     echo ""
     echo "  Tailscale (optional — press Enter to skip)"
-    ts_authkey="$(prompt_value "  Tailscale auth key" "${current_ts_authkey}" "true")"
+    ts_authkey="$(prompt_value "  Tailscale auth key" "${current_ts_authkey}")"
 
     if [ -n "$ts_authkey" ]; then
         hostname="$(prompt_value "  Container hostname" "cobalt-strike-server")"
