@@ -72,6 +72,151 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+prompt_value() {
+    local prompt_text="$1"
+    local default_value="${2:-}"
+    local is_secret="${3:-false}"
+    local value=""
+
+    if [ -n "$default_value" ]; then
+        printf '%s [%s]: ' "$prompt_text" "$default_value" >&2
+    else
+        printf '%s: ' "$prompt_text" >&2
+    fi
+
+    if [ "$is_secret" = "true" ]; then
+        read -rs value
+        printf '\n' >&2
+    else
+        read -r value
+    fi
+
+    if [ -z "$value" ]; then
+        value="$default_value"
+    fi
+
+    printf '%s' "$value"
+}
+
+write_env_value() {
+    local key="$1"
+    local value="$2"
+    local config="$3"
+
+    if grep -q "^[[:space:]]*${key}=" "$config" 2>/dev/null; then
+        # Update existing key in place
+        sed -i.bak "s|^[[:space:]]*${key}=.*|${key}=\"${value}\"|" "$config"
+        rm -f "${config}.bak"
+    else
+        # Append new key
+        printf '%s="%s"\n' "$key" "$value" >> "$config"
+    fi
+}
+
+run_setup_wizard() {
+    echo ""
+    echo "╔══════════════════════════════════════════════════╗"
+    echo "║         Cobalt Strike Docker — Setup             ║"
+    echo "╚══════════════════════════════════════════════════╝"
+    echo ""
+
+    # Ensure .env exists (copy from template if needed)
+    if [ ! -f "$CONFIG_FILE" ]; then
+        if [ -f "$SCRIPT_DIR/.env.example" ]; then
+            cp "$SCRIPT_DIR/.env.example" "$CONFIG_FILE"
+        else
+            touch "$CONFIG_FILE"
+        fi
+    fi
+
+    # Read current values (may be placeholders)
+    local current_license current_password current_ts_authkey current_ts_extra
+    current_license="$(get_env_value "COBALTSTRIKE_LICENSE" 2>/dev/null || true)"
+    current_password="$(get_env_value "TEAMSERVER_PASSWORD" 2>/dev/null || true)"
+    current_ts_authkey="$(get_env_value "TS_AUTHKEY" 2>/dev/null || true)"
+    current_ts_extra="$(get_env_value "TS_EXTRA_ARGS" 2>/dev/null || true)"
+
+    # Clear placeholder values so they don't show as defaults
+    case "$current_license" in
+        *replace*|*REPLACE*|"") current_license="" ;;
+    esac
+    case "$current_password" in
+        *replace*|*REPLACE*|"") current_password="" ;;
+    esac
+
+    # Prompt for required values
+    local license password ts_authkey hostname
+
+    if [ -z "$current_license" ]; then
+        license="$(prompt_value "Cobalt Strike license key" "" "true")"
+        while [ -z "$license" ]; do
+            echo "  License key is required." >&2
+            license="$(prompt_value "Cobalt Strike license key" "" "true")"
+        done
+    else
+        license="$current_license"
+        echo "  Cobalt Strike license: [already set]"
+    fi
+
+    if [ -z "$current_password" ]; then
+        password="$(prompt_value "Team server password" "" "true")"
+        while [ -z "$password" ]; do
+            echo "  Password is required." >&2
+            password="$(prompt_value "Team server password" "" "true")"
+        done
+    else
+        password="$current_password"
+        echo "  Team server password: [already set]"
+    fi
+
+    echo ""
+    echo "  Tailscale (optional — press Enter to skip)"
+    ts_authkey="$(prompt_value "  Tailscale auth key" "${current_ts_authkey}" "true")"
+
+    if [ -n "$ts_authkey" ]; then
+        hostname="$(prompt_value "  Container hostname" "cobalt-strike-server")"
+        write_env_value "TS_AUTHKEY" "$ts_authkey" "$CONFIG_FILE"
+        write_env_value "TS_EXTRA_ARGS" "--hostname=${hostname}" "$CONFIG_FILE"
+        write_env_value "TS_USERSPACE" "true" "$CONFIG_FILE"
+        write_env_value "USE_TAILSCALE_IP" "true" "$CONFIG_FILE"
+    fi
+
+    write_env_value "COBALTSTRIKE_LICENSE" "$license" "$CONFIG_FILE"
+    write_env_value "TEAMSERVER_PASSWORD" "$password" "$CONFIG_FILE"
+
+    echo ""
+    local skip_rest=""
+    skip_rest="$(prompt_value "  Skip REST API? (required if running under emulation without AVX2) [y/N]" "n")"
+    case "$skip_rest" in
+        [Yy]|[Yy][Ee][Ss]) write_env_value "SKIP_REST_API" "true" "$CONFIG_FILE" ;;
+        *) write_env_value "SKIP_REST_API" "false" "$CONFIG_FILE" ;;
+    esac
+
+    echo ""
+    echo "  Configuration saved to $CONFIG_FILE"
+    echo ""
+}
+
+is_env_ready() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        return 1
+    fi
+
+    local license password
+    license="$(get_env_value "COBALTSTRIKE_LICENSE" 2>/dev/null || true)"
+    password="$(get_env_value "TEAMSERVER_PASSWORD" 2>/dev/null || true)"
+
+    # Check for missing or placeholder values
+    case "$license" in
+        ""|*replace*|*REPLACE*) return 1 ;;
+    esac
+    case "$password" in
+        ""|*replace*|*REPLACE*) return 1 ;;
+    esac
+
+    return 0
+}
+
 trim_whitespace() {
     local value="$1"
     value="${value#"${value%%[![:space:]]*}"}"
@@ -346,12 +491,8 @@ configure_mount_mode() {
 }
 
 load_configuration() {
-    if [ ! -f "$CONFIG_FILE" ]; then
-        echo "Error: Required configuration file not found: $CONFIG_FILE"
-        echo "Create $CONFIG_FILE from $SCRIPT_DIR/.env.example and populate:"
-        echo "  - COBALTSTRIKE_LICENSE"
-        echo "  - TEAMSERVER_PASSWORD"
-        exit 1
+    if ! is_env_ready; then
+        run_setup_wizard
     fi
 
     COBALTSTRIKE_LICENSE="$(get_env_value "COBALTSTRIKE_LICENSE" || true)"

@@ -271,5 +271,50 @@ else
     REST_PID="$!"
 
     wait_for_rest_healthcheck
+
+    # Auto-login to REST API and display bearer token
+    log_phase "rest-token" "requesting bearer token from REST API"
+    local login_url="https://127.0.0.1:${SERVICE_PORT}/api/auth/login"
+    local token_json=""
+    local access_token=""
+    local -a curl_login=(curl --silent --show-error --max-time 10 --output -)
+
+    if [ "$HEALTHCHECK_INSECURE" = "true" ]; then
+        curl_login+=(--insecure)
+    fi
+
+    token_json="$("${curl_login[@]}" -X POST "$login_url" \
+        -H "Content-Type: application/json" \
+        -d "{\"username\":\"${REST_API_USER}\",\"password\":\"${TEAMSERVER_PASSWORD}\",\"duration_ms\":86400000}" 2>/dev/null || true)"
+
+    if [ -n "$token_json" ]; then
+        # Extract access_token — try jq first, fall back to grep/sed
+        if command -v jq >/dev/null 2>&1; then
+            access_token="$(printf '%s' "$token_json" | jq -r '.access_token // empty' 2>/dev/null || true)"
+        else
+            access_token="$(printf '%s' "$token_json" | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"$//' || true)"
+        fi
+    fi
+
+    if [ -n "$access_token" ]; then
+        log_phase "rest-token" "bearer token acquired"
+        printf '\n'
+        printf '╔══════════════════════════════════════════════════════════════╗\n'
+        printf '║  REST API Bearer Token                                      ║\n'
+        printf '╠══════════════════════════════════════════════════════════════╣\n'
+        printf '║  %s\n' "$access_token"
+        printf '║                                                              ║\n'
+        printf '║  Usage:                                                      ║\n'
+        printf '║  curl -sk -H "Authorization: Bearer <token>" \\              ║\n'
+        printf '║    https://127.0.0.1:%s/api/v1/beacons               ║\n' "$SERVICE_PORT"
+        printf '╚══════════════════════════════════════════════════════════════╝\n'
+        printf '\n'
+    else
+        log_phase "rest-token" "could not retrieve bearer token (REST API may require manual login)"
+        if [ -n "$token_json" ]; then
+            log_phase "rest-token" "response: $token_json"
+        fi
+    fi
+
     monitor_runtime_processes
 fi
