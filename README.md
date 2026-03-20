@@ -87,18 +87,16 @@ These are shell variables passed when invoking `cobalt-docker.sh`, not stored in
 
 ### Custom profile
 
+Profiles are automatically linted with `c2lint` before deployment:
+
 ```bash
 ./cobalt-docker.sh custom.profile
 ```
 
-### Profile linting (c2lint)
+To lint without deploying:
 
 ```bash
-# Lint only (no deploy)
 ./cobalt-docker.sh lint custom.profile
-
-# Lint then deploy
-./cobalt-docker.sh custom.profile --lint
 ```
 
 ## REST API

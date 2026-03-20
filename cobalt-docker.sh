@@ -65,23 +65,20 @@ show_help() {
     echo ""
     echo "Commands:"
     echo "  (none)                Deploy the team server (runs setup wizard if needed)"
+    echo "  <profile>             Deploy with a Malleable C2 profile (auto-linted)"
     echo "  api-token             Get a REST API bearer token from a running server"
     echo "  status                Check if the container is running"
     echo "  stop                  Stop and remove the container"
     echo "  lint <profile>        Lint a Malleable C2 profile without deploying"
     echo "  help                  Show this help message"
     echo ""
-    echo "Options:"
-    echo "  <profile>             Deploy with a Malleable C2 profile"
-    echo "  <profile> --lint      Lint the profile, then deploy"
-    echo ""
     echo "Examples:"
     echo "  ./cobalt-docker.sh                      # deploy with setup wizard"
-    echo "  ./cobalt-docker.sh custom.profile        # deploy with a profile"
+    echo "  ./cobalt-docker.sh custom.profile        # lint + deploy with profile"
     echo "  ./cobalt-docker.sh api-token             # get bearer token"
     echo "  ./cobalt-docker.sh status                # check if running"
     echo "  ./cobalt-docker.sh stop                  # stop the server"
-    echo "  ./cobalt-docker.sh lint custom.profile   # lint only"
+    echo "  ./cobalt-docker.sh lint custom.profile   # lint only (no deploy)"
     echo ""
 }
 
@@ -757,8 +754,8 @@ echo "==> Selected profile: $PROFILE_NAME"
 echo "==> Mount source candidate: $MOUNT_SOURCE"
 configure_mount_mode
 
-# 4. Optionally lint the profile with c2lint inside the Docker image.
-if [ "$DO_LINT" = true ] && [ -n "$PROFILE_NAME" ]; then
+# 4. Lint the profile with c2lint inside the Docker image.
+if [ -n "$PROFILE_NAME" ]; then
     echo "==> Running c2lint against $PROFILE_NAME inside Docker image..."
     docker run --rm \
       --platform "$DOCKER_PLATFORM" \
